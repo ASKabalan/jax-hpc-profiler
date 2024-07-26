@@ -1,28 +1,23 @@
 import sys
 
-from .create_argparse import create_parser
+from .create_argparse import create_argparser
 from .plotting import plot_strong_scaling, plot_weak_scaling
 from .utils import clean_up_csv, concatenate_csvs
 
 
 def main():
-    parser = create_parser()
+    parser = create_argparser()
     args = parser.parse_args()
 
-    if args.concat:
-        if args.input and args.output_dir:
-            concatenate_csvs(args.input, args.output_dir)
-        else:
-            print(
-                "Please provide input and output directories for concatenation."
-            )
-            sys.exit(1)
-    else:
+    if args.command == 'concat':
+        input_dir, output_dir = args.input, args.output
+        concatenate_csvs(input_dir, output_dir)
+    elif args.command == 'plot':
         dataframes = clean_up_csv(args.csv_files, args.precision,
-                                  args.fft_type, args.gpus, args.data_size,
-                                  args.pdims, args.pdims_strategy,
-                                  args.time_aggregation, args.backends,
-                                  args.time_column)
+                                  args.function_name, args.gpus,
+                                  args.data_size, args.filter_pdims,
+                                  args.pdims_strategy, args.time_aggregation,
+                                  args.backends, args.time_column)
 
         if args.scaling == 'Weak':
             plot_weak_scaling(dataframes, args.gpus, args.nodes_in_label,

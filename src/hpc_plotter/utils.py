@@ -7,6 +7,37 @@ import pandas as pd
 from matplotlib.axes import Axes
 
 
+def inspect_data(dataframes: Dict[str, pd.DataFrame]):
+    """
+    Inspect the dataframes.
+
+    Parameters
+    ----------
+    dataframes : Dict[str, pd.DataFrame]
+        Dictionary of method names to dataframes.
+    """
+    print("=" * 80)
+    print("Inspecting dataframes...")
+    print("=" * 80)
+    for method, df in dataframes.items():
+        print(f"Method: {method}")
+        inspect_df(df)
+    print("=" * 80)
+
+
+def inspect_df(df: pd.DataFrame):
+    """
+    Inspect the dataframe.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to inspect.
+    """
+    print(df.to_markdown())
+    print("-" * 80)
+
+
 def plot_with_pdims_strategy(ax: Axes, df: pd.DataFrame, method: str,
                              backend: str, nodes_in_label: bool,
                              pdims_strategy: str, print_decompositions: bool,
@@ -93,37 +124,41 @@ def concatenate_csvs(root_dir: str, output_dir: str):
     output_dir : str
         Output directory to save concatenated CSV files.
     """
-    gpu_types = ['a100', 'v100']
-    csv_files_names = ['jaxdecompfft.csv', 'jaxfft.csv', 'mpi4jaxfft.csv']
-
-    for gpu in gpu_types:
+    # Iterate over each GPU type directory
+    for gpu in os.listdir(root_dir):
         gpu_dir = os.path.join(root_dir, gpu)
 
-        if not os.path.exists(gpu_dir):
+        # Check if the GPU directory exists and is a directory
+        if not os.path.isdir(gpu_dir):
             continue
 
-        for csv_file_name in csv_files_names:
-            csv_files = []
-            for root, dirs, files in os.walk(gpu_dir):
-                for file in files:
-                    if file == csv_file_name:
-                        csv_files.append(os.path.join(root, file))
+        # Dictionary to hold combined dataframes for each CSV file name
+        combined_dfs = {}
 
-            combined_df = pd.DataFrame()
+        # List CSV in directory and subdirectories
+        for root, dirs, files in os.walk(gpu_dir):
+            for file in files:
+                if file.endswith('.csv'):
+                    csv_file_path = os.path.join(root, file)
+                    print(f'Concatenating {csv_file_path}...')
+                    df = pd.read_csv(csv_file_path,
+                                     header=None,
+                                     names=[
+                                         "rank", "FFT_type", "precision", "x",
+                                         "y", "z", "px", "py", "backend",
+                                         "nodes", "jit_time", "min_time",
+                                         "max_time", "mean_time", "std_time",
+                                         "last_time"
+                                     ],
+                                     index_col=False)
+                    if file not in combined_dfs:
+                        combined_dfs[file] = df
+                    else:
+                        combined_dfs[file] = pd.concat(
+                            [combined_dfs[file], df], ignore_index=True)
 
-            for csv_file in sorted(csv_files):
-                print(f'Concatenating {csv_file}...')
-                df = pd.read_csv(csv_file,
-                                 header=None,
-                                 names=[
-                                     "rank", "FFT_type", "precision", "x", "y",
-                                     "z", "px", "py", "backend", "nodes",
-                                     "jit_time", "min_time", "max_time",
-                                     "mean_time", "std_time", "last_time"
-                                 ],
-                                 index_col=False)
-                combined_df = pd.concat([combined_df, df], ignore_index=True)
-
+        # Remove duplicates based on specified columns and save
+        for file_name, combined_df in combined_dfs.items():
             combined_df.drop_duplicates(subset=[
                 "rank", "FFT_type", "precision", "x", "y", "z", "px", "py",
                 "backend", "nodes"
@@ -131,12 +166,13 @@ def concatenate_csvs(root_dir: str, output_dir: str):
                                         keep='last',
                                         inplace=True)
 
-            if not os.path.exists(os.path.join(output_dir, gpu)):
-                print(f"Creating directory {os.path.join(output_dir, gpu)}")
-                os.makedirs(os.path.join(output_dir, gpu))
+            gpu_output_dir = os.path.join(output_dir, gpu)
+            if not os.path.exists(gpu_output_dir):
+                print(f"Creating directory {gpu_output_dir}")
+                os.makedirs(gpu_output_dir)
 
-            output_file = os.path.join(output_dir, gpu, csv_file_name)
-            print(f"writing file to {output_file}...")
+            output_file = os.path.join(gpu_output_dir, file_name)
+            print(f"Writing file to {output_file}...")
             combined_df.to_csv(output_file, index=False)
 
 
@@ -260,6 +296,10 @@ def clean_up_csv(csv_files: List[str],
 
         if gpus:
             aggregated_df = aggregated_df[aggregated_df['gpus'].isin(gpus)]
+
+        # After filtering, if we have no data, skip this file
+        if aggregated_df.empty:
+            continue
 
         if pdims_strategy == 'plot_all':
 
