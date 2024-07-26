@@ -1,15 +1,19 @@
+from typing import Dict, List, Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.patches import FancyBboxPatch
 from matplotlib.axes import Axes
-from typing import List, Dict, Optional
+from matplotlib.patches import FancyBboxPatch
+
 from .utils import plot_with_pdims_strategy
 
 np.seterr(divide='ignore')
 plt.rcParams.update({'font.size': 10})
 
-def configure_axes(ax: Axes, x_values: List[int], y_values: List[float], xlabel: str, ylabel: str):
+
+def configure_axes(ax: Axes, x_values: List[int], y_values: List[float],
+                   xlabel: str, ylabel: str):
     """
     Configure the axes for the plot.
 
@@ -47,6 +51,7 @@ def configure_axes(ax: Axes, x_values: List[int], y_values: List[float], xlabel:
               bbox_to_anchor=(0.5, 0.05),
               ncol=4,
               prop={'size': 14})
+
 
 def plot_strong_scaling(dataframes: Dict[str, pd.DataFrame],
                         fixed_data_size: List[int],
@@ -115,22 +120,32 @@ def plot_strong_scaling(dataframes: Dict[str, pd.DataFrame],
                 if df_backend.empty:
                     continue
 
-                x_values, y_values = plot_with_pdims_strategy(ax, df_backend, method, backend, nodes_in_label, pdims_strategy, print_decompositions, 'gpus', 'Number of GPUs', 'Time (milliseconds)')
+                x_values, y_values = plot_with_pdims_strategy(
+                    ax, df_backend, method, backend, nodes_in_label,
+                    pdims_strategy, print_decompositions, 'gpus',
+                    'Number of GPUs', 'Time (milliseconds)')
                 number_of_gpus.extend(x_values)
                 times.extend(y_values)
 
-        configure_axes(ax, number_of_gpus, times, 'Number of GPUs', 'Time (milliseconds)')
+        configure_axes(ax, number_of_gpus, times, 'Number of GPUs',
+                       'Time (milliseconds)')
 
     for i in range(num_subplots, num_rows * num_cols):
         fig.delaxes(axs[i])
 
     fig.tight_layout()
-    rect = FancyBboxPatch((0.1, 0.1), 0.8, 0.8, boxstyle="round,pad=0.02", ec="black", fc="none")
+    rect = FancyBboxPatch((0.1, 0.1),
+                          0.8,
+                          0.8,
+                          boxstyle="round,pad=0.02",
+                          ec="black",
+                          fc="none")
     fig.patches.append(rect)
     if output is None:
         plt.show()
     else:
         plt.savefig(output, bbox_inches='tight', transparent=False)
+
 
 def plot_weak_scaling(dataframes: Dict[str, pd.DataFrame],
                       fixed_gpu_size: List[int],
@@ -200,17 +215,26 @@ def plot_weak_scaling(dataframes: Dict[str, pd.DataFrame],
                 if df_backend.empty:
                     continue
 
-                x_values, y_values = plot_with_pdims_strategy(ax, df_backend, method, backend, nodes_in_label, pdims_strategy, print_decompositions, 'x', 'Data size (pixels³)', 'Time (seconds)')
+                x_values, y_values = plot_with_pdims_strategy(
+                    ax, df_backend, method, backend, nodes_in_label,
+                    pdims_strategy, print_decompositions, 'x',
+                    'Data size (pixels³)', 'Time (seconds)')
                 data_sizes.extend(x_values)
                 times.extend(y_values)
 
-        configure_axes(ax, data_sizes, times, 'Data size (pixels³)', 'Time (seconds)')
+        configure_axes(ax, data_sizes, times, 'Data size (pixels³)',
+                       'Time (seconds)')
 
     for i in range(num_subplots, num_rows * num_cols):
         fig.delaxes(axs[i])
 
     fig.tight_layout()
-    rect = FancyBboxPatch((0.1, 0.1), 0.8, 0.8, boxstyle="round,pad=0.02", ec="black", fc="none")
+    rect = FancyBboxPatch((0.1, 0.1),
+                          0.8,
+                          0.8,
+                          boxstyle="round,pad=0.02",
+                          ec="black",
+                          fc="none")
     fig.patches.append(rect)
 
     if output is None:

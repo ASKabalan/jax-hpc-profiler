@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name='hpc_plotter',
@@ -8,13 +8,7 @@ setup(
     author_email='your.email@example.com',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
-    install_requires=[
-        'numpy',
-        'pandas',
-        'matplotlib',
-        'seaborn',
-        'jax'
-    ],
+    install_requires=['numpy', 'pandas', 'matplotlib', 'seaborn', 'jax'],
     entry_points={
         'console_scripts': [
             'hpc-plotter=hpc_plotter.main:main',

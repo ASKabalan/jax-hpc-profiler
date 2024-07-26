@@ -1,8 +1,10 @@
 import time
-import numpy as np
+from typing import Callable, List
+
 import jax
 import jax.numpy as jnp
-from typing import Callable, List
+import numpy as np
+
 
 class Timer:
     """
@@ -89,7 +91,9 @@ class Timer:
         self.times.append((end - start) * 1e3)
         return out
 
-    def print_to_csv(self, filename: str, rank: int, function_name: str, precision: str, x: int, y: int, z: int, px: int, py: int, backend: str, nodes: int):
+    def print_to_csv(self, filename: str, rank: int, function_name: str,
+                     precision: str, x: int, y: int, z: int, px: int, py: int,
+                     backend: str, nodes: int):
         """
         Print the timing results to a CSV file.
 

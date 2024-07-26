@@ -1,12 +1,16 @@
 import os
-import pandas as pd
-from typing import List, Dict
+from typing import Dict, List, Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.axes import Axes
-from typing import List, Dict, Optional
 
-def plot_with_pdims_strategy(ax: Axes, df: pd.DataFrame, method: str, backend: str, nodes_in_label: bool, pdims_strategy: str, print_decompositions: bool, x_col: str, x_label: str, y_label: str):
+
+def plot_with_pdims_strategy(ax: Axes, df: pd.DataFrame, method: str,
+                             backend: str, nodes_in_label: bool,
+                             pdims_strategy: str, print_decompositions: bool,
+                             x_col: str, x_label: str, y_label: str):
     """
     Plot the data based on the pdims strategy.
 
@@ -41,10 +45,21 @@ def plot_with_pdims_strategy(ax: Axes, df: pd.DataFrame, method: str, backend: s
             sorted_dfs.append(group.iloc[0])
         sorted_df = pd.DataFrame(sorted_dfs)
         label = f"{method}-{backend}-{group['nodes'].values[0]}nodes" if nodes_in_label else f"{method}-{backend}"
-        ax.plot(sorted_df[x_col].values, sorted_df["time"], marker='o', linestyle='-', label=label)
+        ax.plot(sorted_df[x_col].values,
+                sorted_df["time"],
+                marker='o',
+                linestyle='-',
+                label=label)
         if print_decompositions:
-            for j, (px, py) in enumerate(zip(sorted_df['px'], sorted_df['py'])):
-                ax.annotate(f"{px}x{py}", (sorted_df[x_col].values[j], sorted_df['time'].values[j]), textcoords="offset points", xytext=(0, 10), ha='center', color='red' if j == 0 else 'white')
+            for j, (px, py) in enumerate(zip(sorted_df['px'],
+                                             sorted_df['py'])):
+                ax.annotate(
+                    f"{px}x{py}",
+                    (sorted_df[x_col].values[j], sorted_df['time'].values[j]),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha='center',
+                    color='red' if j == 0 else 'white')
         return sorted_df[x_col].values, sorted_df["time"].values
 
     elif pdims_strategy == 'plot_all':
@@ -52,13 +67,20 @@ def plot_with_pdims_strategy(ax: Axes, df: pd.DataFrame, method: str, backend: s
         x_values = []
         y_values = []
         for _, group in df_decomp:
-            group.drop_duplicates(subset=[x_col, 'decomp'], keep='last', inplace=True)
+            group.drop_duplicates(subset=[x_col, 'decomp'],
+                                  keep='last',
+                                  inplace=True)
             group.sort_values(by=[x_col], inplace=True, ascending=False)
             label = f"{method}-{backend}-{group['decomp'].values[0]}" if not nodes_in_label else f"{method}-{backend}-{group['nodes'].values[0]}nodes-{group['decomp'].values[0]}"
-            ax.plot(group[x_col].values, group["time"], marker='o', linestyle='-', label=label)
+            ax.plot(group[x_col].values,
+                    group["time"],
+                    marker='o',
+                    linestyle='-',
+                    label=label)
             x_values.extend(group[x_col].values)
             y_values.extend(group["time"].values)
         return x_values, y_values
+
 
 def concatenate_csvs(root_dir: str, output_dir: str):
     """
@@ -116,6 +138,7 @@ def concatenate_csvs(root_dir: str, output_dir: str):
             output_file = os.path.join(output_dir, gpu, csv_file_name)
             print(f"writing file to {output_file}...")
             combined_df.to_csv(output_file, index=False)
+
 
 def clean_up_csv(csv_files: List[str],
                  precision: str,
@@ -207,8 +230,8 @@ def clean_up_csv(csv_files: List[str],
         sub_dfs = [group for _, group in grouped_df]
         sub_dfs = [
             df.drop_duplicates(subset=[
-                "rank", "FFT_type", "precision", "x", "y", "z", "px", "py", "backend",
-                "nodes"
+                "rank", "FFT_type", "precision", "x", "y", "z", "px", "py",
+                "backend", "nodes"
             ],
                                keep='last') for df in sub_dfs
         ]
