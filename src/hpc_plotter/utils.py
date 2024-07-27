@@ -275,9 +275,8 @@ def clean_up_csv(csv_files: List[str],
         num_gpu = [len(sub_df) for sub_df in sub_dfs]
         aggregated_dfs = []
         for sub_df in sub_dfs:
-            if csv_file.split("/")[-1] == "jaxfft.csv":
-                sub_df["time"] = sub_df['max_time']
-            elif time_aggregation == 'mean':
+            print(f"here")
+            if time_aggregation == 'mean':
                 sub_df["time"] = sub_df[time_column].mean()
             elif time_aggregation == 'min':
                 sub_df["time"] = sub_df[time_column].min()
