@@ -24,7 +24,7 @@ class Timer:
         self.jit_time = None
         self.times = []
 
-    def chrono_jit(self, fun: Callable, *args) -> np.ndarray:
+    def chrono_jit(self, fun: Callable, *args , ndarray_arg = None) -> np.ndarray:
         """
         Time a JIT-compiled function and store the time.
 
@@ -53,12 +53,16 @@ class Timer:
         >>> x = timer.chrono_jit(do_fft, x)
         """
         start = time.perf_counter()
-        out = fun(*args).block_until_ready()
+        out = fun(*args)
+        if ndarray_arg is None:
+            out.block_until_ready()
+        else:
+            out[ndarray_arg].block_until_ready()
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
         return out
 
-    def chrono_fun(self, fun: Callable, *args) -> np.ndarray:
+    def chrono_fun(self, fun: Callable, *args  , ndarray_arg = None) -> np.ndarray:
         """
         Time a function and append the time to the list of times.
 
@@ -86,7 +90,11 @@ class Timer:
         >>> x = timer.chrono_fun(do_fft, x)
         """
         start = time.perf_counter()
-        out = fun(*args).block_until_ready()
+        out = fun(*args)
+        if ndarray_arg is None:
+            out.block_until_ready()
+        else:
+            out[ndarray_arg].block_until_ready()
         end = time.perf_counter()
         self.times.append((end - start) * 1e3)
         return out
