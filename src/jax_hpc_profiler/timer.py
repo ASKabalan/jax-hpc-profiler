@@ -163,10 +163,10 @@ class Timer:
         with open(md_filename, 'w') as f:
             f.write(f"# Reporting for {function}\n")
             f.write(f"## Parameters\n")
-            f.write(tabulate(param_dict.items(), tablefmt="pipe"))
+            f.write(tabulate(param_dict.items()))
             f.write("\n---\n")
             f.write(f"## Profiling Data\n")
-            f.write(tabulate(profiling_result.items(), tablefmt="pipe"))
+            f.write(tabulate(profiling_result.items()))
             f.write("\n---\n")
             f.write(f"## Compiled Code\n")
             f.write(f"```hlo\n")

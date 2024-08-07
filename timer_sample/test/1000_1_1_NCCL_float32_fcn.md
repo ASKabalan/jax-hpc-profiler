@@ -1,30 +1,32 @@
 # Reporting for fcn
 ## Parameters
-|:----------|:--------|
-| Function  | fcn     |
-| Precision | float32 |
-| X         | 1000    |
-| Y         | 1000    |
-| Z         | 1000    |
-| PX        | 1       |
-| PY        | 1       |
-| Backend   | NCCL    |
-| Nodes     | 1       |
-| done      | yes     |
+---------  -------
+Function   fcn
+Precision  float32
+X          1000
+Y          1000
+Z          1000
+PX         1
+PY         1
+Backend    NCCL
+Nodes      1
+done       yes
+---------  -------
 ---
 ## Profiling Data
-|:---------------|-----------------:|
-| JIT Time       |     98.2209      |
-| Min Time       |      0.404316    |
-| Max Time       |     36.8518      |
-| Mean Time      |      4.15635     |
-| Std Time       |     10.8987      |
-| Last Time      |      0.404316    |
-| Generated Code |   3624           |
-| Argument Size  |      1.2e+07     |
-| Output Size    |      4e+06       |
-| Temporary Size |      4.19443e+06 |
-| FLOPS          | 999999           |
+--------------  ----------------
+JIT Time            87.0802
+Min Time             0.331191
+Max Time            34.4314
+Mean Time            3.78202
+Std Time            10.2165
+Last Time            0.362222
+Generated Code    3624
+Argument Size        1.2e+07
+Output Size          4e+06
+Temporary Size       4.19443e+06
+FLOPS           999999
+--------------  ----------------
 ---
 ## Compiled Code
 ```hlo
