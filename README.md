@@ -74,30 +74,30 @@ The CSV files should follow a specific structure to ensure proper processing and
 root_directory/
 ├── gpu_1/
 │   ├── 2/
-│   │   ├── method_1.csv   
-│   │   ├── method_2.csv    
-│   │   └── method_3.csv   
+│   │   ├── method_1.csv
+│   │   ├── method_2.csv
+│   │   └── method_3.csv
 │   ├── 4/
-│   │   ├── method_1.csv   
-│   │   ├── method_2.csv    
-│   │   └── method_3.csv   
+│   │   ├── method_1.csv
+│   │   ├── method_2.csv
+│   │   └── method_3.csv
 │   └── 8/
-│       ├── method_1.csv   
-│       ├── method_2.csv    
-│       └── method_3.csv   
+│       ├── method_1.csv
+│       ├── method_2.csv
+│       └── method_3.csv
 └── gpu_2/
     ├── 2/
-    │   ├── method_1.csv 
-    │   ├── method_2.csv    
-    │   └── method_3.csv   
+    │   ├── method_1.csv
+    │   ├── method_2.csv
+    │   └── method_3.csv
     ├── 4/
-    │   ├── method_1.csv   
-    │   ├── method_2.csv    
-    │   └── method_3.csv   
+    │   ├── method_1.csv
+    │   ├── method_2.csv
+    │   └── method_3.csv
     └── 8/
-        ├── method_1.csv   
-        ├── method_2.csv    
-        └── method_3.csv   
+        ├── method_1.csv
+        ├── method_2.csv
+        └── method_3.csv
 ```
 
 ## Concatenating Files from Different Runs
@@ -115,13 +115,13 @@ And the output will be:
 ```
 out_directory/
 ├── gpu_1/
-│   ├── method_1.csv   
-│   ├── method_2.csv    
-│   └── method_3.csv   
+│   ├── method_1.csv
+│   ├── method_2.csv
+│   └── method_3.csv
 └── gpu_2/
-    ├── method_1.csv 
-    ├── method_2.csv    
-    └── method_3.csv   
+    ├── method_1.csv
+    ├── method_2.csv
+    └── method_3.csv
 ```
 
 

@@ -3,9 +3,9 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hpc_plotter"
+name = "jax_hpc_profiler"
 version = "0.1.3"
-description = "HPC Plotter for benchmarking data"
+description = "HPC Plotter and profiler for benchmarking data made for JAX"
 authors = [
     { name="Wassim Kabalan" }
 ]
@@ -13,11 +13,11 @@ dependencies = [
     "numpy",
     "pandas",
     "matplotlib",
-    "seaborn"
+    "seaborn",
+    "tabulate"
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
 
 [project.scripts]
-hpc-plotter = "hpc_plotter.main:main"
-
+jhp = "jax_hpc_profiler.main:main"

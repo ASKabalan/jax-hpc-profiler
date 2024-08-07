@@ -7,8 +7,8 @@ def create_argparser():
 
     Returns
     -------
-    argparse.ArgumentParser
-        Configured argument parser.
+    argparse.Namespace
+        Parsed and validated arguments.
     """
     parser = argparse.ArgumentParser(
         description='HPC Plotter for benchmarking data')
@@ -48,38 +48,50 @@ def create_argparser():
                              '--filter_pdims',
                              nargs='*',
                              help='List of pdims to filter, e.g., 1x4 2x2 4x8')
-    plot_parser.add_argument('-ps',
-                             '--pdims_strategy',
-                             choices=['plot_all', 'plot_fastest'],
-                             default='plot_fastest',
-                             help='Strategy for plotting pdims')
+    plot_parser.add_argument(
+        '-ps',
+        '--pdim_strategy',
+        choices=['plot_all', 'plot_fastest', 'slab_yz', 'slab_xy', 'pencils'],
+        nargs='*',
+        default=['plot_fastest'],
+        help='Strategy for plotting pdims')
 
     # Function and precision related arguments
     plot_parser.add_argument(
-        '-p',
+        '-pr',
         '--precision',
         choices=['float32', 'float64'],
-        default='float32',
+        default=['float32', 'float64'],
+        nargs='*',
         help='Precision to filter by (float32 or float64)')
     plot_parser.add_argument('-fn',
                              '--function_name',
-                             default='FFT',
-                             help='Function name to filter')
+                             nargs='+',
+                             default=['FFT'],
+                             help='Function names to filter')
 
-    # Time related arguments
-    plot_parser.add_argument('-ta',
-                             '--time_aggregation',
-                             choices=['mean', 'min', 'max'],
-                             default='mean',
-                             help='Time aggregation method')
-    plot_parser.add_argument('-tc',
-                             '--time_column',
-                             choices=[
-                                 'jit_time', 'min_time', 'max_time',
-                                 'mean_time', 'std_div', 'last_time'
-                             ],
-                             default='mean_time',
-                             help='Time column to plot')
+    # Time or memory related arguments
+    plotting_group = plot_parser.add_mutually_exclusive_group(required=True)
+    plotting_group.add_argument('-pt',
+                                '--plot_times',
+                                nargs='*',
+                                choices=[
+                                    'jit_time', 'min_time', 'max_time',
+                                    'mean_time', 'std_time', 'last_time'
+                                ],
+                                help='Time columns to plot')
+    plotting_group.add_argument('-pm',
+                                '--plot_memory',
+                                nargs='*',
+                                choices=[
+                                    'generated_code', 'argument_size',
+                                    'output_size', 'temp_size'
+                                ],
+                                help='Memory columns to plot')
+    plot_parser.add_argument('-mu',
+                        '--memory_units',
+                        default='GB',
+                        help='Memory units to plot (KB, MB, GB, TB)')
 
     # Plot customization arguments
     plot_parser.add_argument('-fs',
@@ -87,18 +99,13 @@ def create_argparser():
                              nargs=2,
                              type=int,
                              help='Figure size')
-    plot_parser.add_argument('-nl',
-                             '--nodes_in_label',
-                             action='store_true',
-                             help='Use node names in labels')
     plot_parser.add_argument('-o',
                              '--output',
                              help='Output file (if none then only show plot)',
                              default=None)
     plot_parser.add_argument('-db',
                              '--dark_bg',
-                             type=bool,
-                             default=False,
+                             action='store_true',
                              help='Use dark background for plotting')
     plot_parser.add_argument('-pd',
                              '--print_decompositions',
@@ -119,4 +126,33 @@ def create_argparser():
                              required=True,
                              help='Scaling type (Weak or Strong)')
 
-    return parser
+    # Label customization argument
+    plot_parser.add_argument(
+        '-l',
+        '--label_text',
+        type=str,
+        help=
+        'Custom label for the plot. You can use placeholders: %decomposition% (or %p%), %precision% (or %pr%), %plot_name% (or %pn%), %backend% (or %b%), %node% (or %n%), %methodname% (or %m%)',
+        default="%m%-%f%-%pn%-%pr%-%b%-%p%-%n%")
+
+    args = parser.parse_args()
+
+    if 'plot_all' in args.pdim_strategy and len(args.pdim_strategy) > 1:
+        print(
+            "Warning: 'plot_all' strategy is combined with other strategies. Using 'plot_all' only."
+        )
+        args.pdim_strategy = ['plot_all']
+
+    if 'plot_fastest' in args.pdim_strategy and len(args.pdim_strategy) > 1:
+        print(
+            "Warning: 'plot_fastest' strategy is combined with other strategies. Using 'plot_fastest' only."
+        )
+        args.pdim_strategy = ['plot_fastest']
+    if args.plot_times is not None:
+        args.plot_columns = args.plot_times
+    elif args.plot_memory is not None:
+        args.plot_columns = args.plot_memory
+    else:
+        raise ValueError('Either plot_times or plot_memory should be provided')
+
+    return args
