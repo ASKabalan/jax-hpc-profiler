@@ -1,13 +1,32 @@
 # Reporting for fcn
 ## Parameters
-| Function   | Precision   |    X |    Y |    Z |   PX |   PY | Backend   |   Nodes | done   |
-|------------|-------------|------|------|------|------|------|-----------|---------|--------|
-| fcn        | float32     | 1000 | 1000 | 1000 |    1 |    1 | NCCL      |       1 | yes    |
+| Parameter   | Value   |
+|-------------|---------|
+| Function    | fcn     |
+| Precision   | float32 |
+| X           | 1000    |
+| Y           | 1000    |
+| Z           | 1000    |
+| PX          | 1       |
+| PY          | 1       |
+| Backend     | NCCL    |
+| Nodes       | 1       |
+| done        | yes     |
 ---
 ## Profiling Data
-|   JIT Time |   Min Time |   Max Time |   Mean Time |   Std Time |   Last Time |   Generated Code |   Argument Size |   Output Size |   Temporary Size |   FLOPS |
-|------------|------------|------------|-------------|------------|-------------|------------------|-----------------|---------------|------------------|---------|
-|    91.5415 |   0.361471 |     38.411 |     4.22309 |     11.396 |     0.42694 |             3624 |        12000000 |       4000000 |          4194432 |  999999 |
+| Parameter      |            Value |
+|----------------|------------------|
+| JIT Time       |     89.717       |
+| Min Time       |      0.333907    |
+| Max Time       |     33.4684      |
+| Mean Time      |      3.76323     |
+| Std Time       |      9.9024      |
+| Last Time      |      0.355401    |
+| Generated Code |   3624           |
+| Argument Size  |      1.2e+07     |
+| Output Size    |      4e+06       |
+| Temporary Size |      4.19443e+06 |
+| FLOPS          | 999999           |
 ---
 ## Compiled Code
 ```hlo
