@@ -29,4 +29,4 @@ meta_data = {
 }
 extra_info = {"done": "yes"}
 
-timer.report("timer_sample/test.csv", **meta_data, extra_info=extra_info)
+timer.report("examples/profiling/test.csv", **meta_data, extra_info=extra_info)

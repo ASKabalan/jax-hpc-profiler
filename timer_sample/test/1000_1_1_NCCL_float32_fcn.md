@@ -16,12 +16,12 @@
 ## Profiling Data
 | Parameter      |         Value |
 |----------------|---------------|
-| JIT Time       |     87.7122   |
-| Min Time       |      0.403114 |
-| Max Time       |     33.489    |
-| Mean Time      |      3.78498  |
-| Std Time       |      9.90149  |
-| Last Time      |      0.403114 |
+| JIT Time       |     90.9718   |
+| Min Time       |      0.455336 |
+| Max Time       |     33.7147   |
+| Mean Time      |      3.82837  |
+| Std Time       |      9.96213  |
+| Last Time      |      0.518595 |
 | Generated Code |   3624        |
 | Argument Size  |   3624        |
 | Output Size    |   3624        |
@@ -31,16 +31,16 @@
 ## Iteration Runs
 | Iteration   |      Time |
 |-------------|-----------|
-| Run 0       | 33.489    |
-| Run 1       |  0.508437 |
-| Run 2       |  0.597514 |
-| Run 3       |  0.448962 |
-| Run 4       |  0.427391 |
-| Run 5       |  0.517643 |
-| Run 6       |  0.519336 |
-| Run 7       |  0.433594 |
-| Run 8       |  0.504794 |
-| Run 9       |  0.403114 |
+| Run 0       | 33.7147   |
+| Run 1       |  0.555299 |
+| Run 2       |  0.515082 |
+| Run 3       |  0.506734 |
+| Run 4       |  0.499501 |
+| Run 5       |  0.455336 |
+| Run 6       |  0.496443 |
+| Run 7       |  0.503494 |
+| Run 8       |  0.51854  |
+| Run 9       |  0.518595 |
 ---
 ## Compiled Code
 ```hlo

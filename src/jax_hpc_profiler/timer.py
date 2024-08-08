@@ -59,9 +59,12 @@ class Timer:
         self.compiled_code["LOWERED"] = lowered.as_text()
         self.compiled_code["COMPILED"] = compiled.as_text()
         self.profiling_data["FLOPS"] = cost_analysis
-        self.profiling_data["generated_code"] = memory_analysis[0]
-        self.profiling_data["argument_size"] = memory_analysis[0]
-        self.profiling_data["output_size"] = memory_analysis[0]
+        self.profiling_data[
+            "generated_code"] = memory_analysis[0]
+        self.profiling_data[
+            "argument_size"] = memory_analysis[0]
+        self.profiling_data[
+            "output_size"] = memory_analysis[0]
         self.profiling_data["temp_size"] = memory_analysis[0]
         return out
 
@@ -122,8 +125,6 @@ class Timer:
                 csv_filename), os.path.splitext(
                     os.path.basename(csv_filename))[0]
             report_folder = filename if dirname == "" else f"{dirname}/{filename}"
-            print(
-                f"report_folder: {report_folder} csv_filename: {csv_filename}")
             os.makedirs(report_folder, exist_ok=True)
             md_filename = f"{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.md"
 
@@ -178,12 +179,13 @@ class Timer:
             "Temporary Size": temp_size,
             "FLOPS": self.profiling_data["FLOPS"]
         }
+        iteration_runs = {}
+        for i in range(len(times_array)):
+            iteration_runs[f"Run {i}"] = times_array[i]
 
         with open(md_filename, 'w') as f:
             f.write(f"# Reporting for {function}\n")
             f.write(f"## Parameters\n")
-            keys = list(param_dict.keys())
-            values = list(param_dict.values())
             f.write(
                 tabulate(param_dict.items(),
                          headers=["Parameter", "Value"],
@@ -193,6 +195,12 @@ class Timer:
             f.write(
                 tabulate(profiling_result.items(),
                          headers=["Parameter", "Value"],
+                         tablefmt='github'))
+            f.write("\n---\n")
+            f.write(f"## Iteration Runs\n")
+            f.write(
+                tabulate(iteration_runs.items(),
+                         headers=["Iteration", "Time"],
                          tablefmt='github'))
             f.write("\n---\n")
             f.write(f"## Compiled Code\n")

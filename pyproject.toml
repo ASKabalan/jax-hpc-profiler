@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jax_hpc_profiler"
-version = "0.2.1"
+version = "0.2.2"
 description = "HPC Plotter and profiler for benchmarking data made for JAX"
 authors = [
     { name="Wassim Kabalan" }
@@ -27,7 +27,6 @@ classifiers = [
 
   # Indicate who your project is intended for
   "Intended Audience :: Developers",
-  "Topic :: HPC :: Profiling :: Benchmarking",
 
   # Pick your license as you wish
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
@@ -44,8 +43,7 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
 ]
 
-urls = [
-    { name = "Github", url = "https://github.com/ASKabalan/jax-hpc-profiler" }]
+urls = { "Homepage" = "https://github.com/ASKabalan/jax-hpc-profiler" }
 
 [project.scripts]
 jhp = "jax_hpc_profiler.main:main"
