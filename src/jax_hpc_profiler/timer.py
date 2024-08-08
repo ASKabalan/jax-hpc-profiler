@@ -28,13 +28,22 @@ class Timer:
             return None
         return cost_analysis[0]['flops']
 
+    def _normalize_memory_units(self, memory_analysis) -> str:  
+        
+        sizes_str = ['B', 'KB', 'MB', 'GB', 'TB' , 'PB']
+        factors = [1 , 1024 , 1024**2 , 1024**3 , 1024**4 , 1024**5]
+        factor = int(np.log10(memory_analysis) // 3)
+        
+        return f"{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}"
+
+    
     def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
         if memory_analysis is None:
             return None, None, None, None
-        return (memory_analysis.generated_code_size_in_bytes,
-                memory_analysis.argument_size_in_bytes,
-                memory_analysis.output_size_in_bytes,
-                memory_analysis.temp_size_in_bytes)
+        return (self._normalize_memory_units(memory_analysis.generated_code_size_in_bytes),
+                self._normalize_memory_units(memory_analysis.argument_size_in_bytes),
+                self._normalize_memory_units(memory_analysis.output_size_in_bytes),
+                self._normalize_memory_units(memory_analysis.temp_size_in_bytes))
 
     def chrono_jit(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
         start = time.perf_counter()
@@ -62,10 +71,10 @@ class Timer:
         self.profiling_data[
             "generated_code"] = memory_analysis[0]
         self.profiling_data[
-            "argument_size"] = memory_analysis[0]
+            "argument_size"] = memory_analysis[1]
         self.profiling_data[
-            "output_size"] = memory_analysis[0]
-        self.profiling_data["temp_size"] = memory_analysis[0]
+            "output_size"] = memory_analysis[2]
+        self.profiling_data["temp_size"] = memory_analysis[3]
         return out
 
     def chrono_fun(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
