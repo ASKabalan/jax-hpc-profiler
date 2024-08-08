@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 
+
 def inspect_data(dataframes: Dict[str, pd.DataFrame]):
     """
     Inspect the dataframes.
@@ -203,17 +204,17 @@ def concatenate_csvs(root_dir: str, output_dir: str):
                 if file.endswith('.csv'):
                     csv_file_path = os.path.join(root, file)
                     print(f'Concatenating {csv_file_path}...')
-                    df = pd.read_csv(
-                        csv_file_path,
-                        header=None,
-                        names=[
-                            "function", "precision", "x", "y", "z", "px",
-                            "py", "backend", "nodes", "jit_time", "min_time",
-                            "max_time", "mean_time", "std_div", "last_time",
-                            "generated_code", "argument_size", "output_size",
-                            "temp_size", "flops"
-                        ],
-                        index_col=False)
+                    df = pd.read_csv(csv_file_path,
+                                     header=None,
+                                     names=[
+                                         "function", "precision", "x", "y",
+                                         "z", "px", "py", "backend", "nodes",
+                                         "jit_time", "min_time", "max_time",
+                                         "mean_time", "std_div", "last_time",
+                                         "generated_code", "argument_size",
+                                         "output_size", "temp_size", "flops"
+                                     ],
+                                     index_col=False)
                     if file not in combined_dfs:
                         combined_dfs[file] = df
                     else:
@@ -340,23 +341,23 @@ def clean_up_csv(
         if pdims:
             px_list, py_list = zip(*[map(int, p.split('x')) for p in pdims])
             df = df[(df['px'].isin(px_list)) & (df['py'].isin(py_list))]
-        
-        # convert memory units columns to remquested memory_units   
+
+        # convert memory units columns to remquested memory_units
         match memory_units:
-          case 'KB':
-            factor = 1024
-          case 'MB':
-            factor = 1024**2
-          case 'GB':
-            factor = 1024**3
-          case 'TB':
-            factor = 1024**4
-          case _:
-            factor = 1
-        
+            case 'KB':
+                factor = 1024
+            case 'MB':
+                factor = 1024**2
+            case 'GB':
+                factor = 1024**3
+            case 'TB':
+                factor = 1024**4
+            case _:
+                factor = 1
+
         df['generated_code'] = df['generated_code'] / factor
-        df['argument_size'] = df['argument_size'] / factor  
-        df['output_size'] = df['output_size'] / factor  
+        df['argument_size'] = df['argument_size'] / factor
+        df['output_size'] = df['output_size'] / factor
         df['temp_size'] = df['temp_size'] / factor
         # in case of the same test is run multiple times, keep the last one
         df = df.drop_duplicates(subset=[
@@ -383,7 +384,7 @@ def clean_up_csv(
             df['decomp'] = df.apply(get_decomp_from_px_py, axis=1)
             df.drop(columns=['px', 'py'], inplace=True)
             if not 'plot_all' in pdims_strategy:
-              df = df[df['decomp'].isin(pdims_strategy)]
+                df = df[df['decomp'].isin(pdims_strategy)]
         # check available gpus in dataset
         available_gpu_counts.update(df['gpus'].unique())
         available_data_sizes.update(df['x'].unique())

@@ -1,12 +1,13 @@
 import os
 import time
 from functools import partial
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Tuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import make_jaxpr
+from jax.experimental import mesh_utils
 from jax.experimental.shard_map import shard_map
 from jax.sharding import Mesh, NamedSharding
 from jax.sharding import PartitionSpec as P
@@ -21,6 +22,19 @@ class Timer:
         self.profiling_data = {}
         self.compiled_code = {}
         self.save_jaxpr = save_jaxpr
+
+    def _read_cost_analysis(self, cost_analysis: Any) -> str | None:
+        if cost_analysis is None:
+            return None
+        return cost_analysis[0]['flops']
+
+    def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
+        if memory_analysis is None:
+            return None, None, None, None
+        return (memory_analysis.generated_code_size_in_bytes,
+                memory_analysis.argument_size_in_bytes,
+                memory_analysis.output_size_in_bytes,
+                memory_analysis.temp_size_in_bytes)
 
     def chrono_jit(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
         start = time.perf_counter()
@@ -38,18 +52,17 @@ class Timer:
 
         lowered = jax.jit(fun).lower(*args)
         compiled = lowered.compile()
-        memory_analysis = compiled.memory_analysis()
+        memory_analysis = self._read_memory_analysis(
+            compiled.memory_analysis())
+        cost_analysis = self._read_cost_analysis(compiled.cost_analysis())
+
         self.compiled_code["LOWERED"] = lowered.as_text()
         self.compiled_code["COMPILED"] = compiled.as_text()
-        self.profiling_data["FLOPS"] = compiled.cost_analysis()[0]['flops']
-        self.profiling_data[
-            "generated_code"] = memory_analysis.generated_code_size_in_bytes
-        self.profiling_data[
-            "argument_size"] = memory_analysis.argument_size_in_bytes
-        self.profiling_data[
-            "output_size"] = memory_analysis.output_size_in_bytes
-        self.profiling_data["temp_size"] = memory_analysis.temp_size_in_bytes
-
+        self.profiling_data["FLOPS"] = cost_analysis
+        self.profiling_data["generated_code"] = memory_analysis[0]
+        self.profiling_data["argument_size"] = memory_analysis[0]
+        self.profiling_data["output_size"] = memory_analysis[0]
+        self.profiling_data["temp_size"] = memory_analysis[0]
         return out
 
     def chrono_fun(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
@@ -63,56 +76,62 @@ class Timer:
         self.times.append((end - start) * 1e3)
         return out
 
-    def _get_mean_times(self, times_array: jnp.ndarray,
-                        sharding: NamedSharding):
-        mesh = sharding.mesh
-        specs = sharding.spec
-        valid_letters = [letter for letter in specs if letter is not None]
-        assert len(valid_letters
-                   ) > 0, "Sharding was provided but with no partition specs"
+    def _get_mean_times(self) -> np.ndarray:
+        if jax.device_count() == 1:
+            return np.array(self.times)
+
+        devices = mesh_utils.create_device_mesh((jax.device_count(), ))
+        mesh = Mesh(devices, ('x', ))
+        sharding = NamedSharding(mesh, P('x'))
+
+        times_array = jnp.array(self.times)
+        global_shape = (jax.device_count(), times_array.shape[0])
+        global_times = jax.make_array_from_callback(
+            shape=global_shape,
+            sharding=sharding,
+            data_callback=lambda x: times_array)
 
         @partial(shard_map,
                  mesh=mesh,
-                 in_specs=specs,
+                 in_specs=P('x'),
                  out_specs=P(),
                  check_rep=False)
         def get_mean_times(times):
-            mean = jax.lax.pmean(times, axis_name=valid_letters[0])
-            for axis_name in valid_letters[1:]:
-                mean = jax.lax.pmean(mean, axis_name=axis_name)
-            return mean
+            return jax.lax.pmean(times, axis_name='x')
 
-        times_array = get_mean_times(times_array)
+        times_array = get_mean_times(global_times)
         times_array.block_until_ready()
-        return times_array
+        return np.array(times_array.addressable_data(0))
 
     def report(self,
                csv_filename: str,
                function: str,
-               precision: str,
                x: int,
-               y: int,
-               z: int,
-               px: int,
-               py: int,
-               backend: str,
-               nodes: int,
-               sharding: NamedSharding | None = None,
+               y: int | None = None,
+               z: int | None = None,
+               precision: str = "float32",
+               px: int = 1,
+               py: int = 1,
+               backend: str = "NCCL",
+               nodes: int = 1,
                md_filename: str | None = None,
                extra_info: dict = {}):
-        times_array = jnp.array(self.times)
 
         if md_filename is None:
-            dirname, filename = os.path.dirname(csv_filename), os.path.splitext(os.path.basename(csv_filename))[0]
+            dirname, filename = os.path.dirname(
+                csv_filename), os.path.splitext(
+                    os.path.basename(csv_filename))[0]
             report_folder = filename if dirname == "" else f"{dirname}/{filename}"
-            print(f"report_folder: {report_folder} csv_filename: {csv_filename}")
+            print(
+                f"report_folder: {report_folder} csv_filename: {csv_filename}")
             os.makedirs(report_folder, exist_ok=True)
             md_filename = f"{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.md"
 
-        if sharding is not None:
-            times_array = self._get_mean_times(times_array, sharding)
+        y = x if y is None else y
+        z = x if z is None else z
 
-        times_array = np.array(times_array)
+        times_array = self._get_mean_times()
+
         min_time = np.min(times_array)
         max_time = np.max(times_array)
         mean_time = np.mean(times_array)
@@ -163,10 +182,18 @@ class Timer:
         with open(md_filename, 'w') as f:
             f.write(f"# Reporting for {function}\n")
             f.write(f"## Parameters\n")
-            f.write(tabulate(param_dict.items() , headers=["Parameter" , "Value"] , tablefmt='github'))
+            keys = list(param_dict.keys())
+            values = list(param_dict.values())
+            f.write(
+                tabulate(param_dict.items(),
+                         headers=["Parameter", "Value"],
+                         tablefmt='github'))
             f.write("\n---\n")
             f.write(f"## Profiling Data\n")
-            f.write(tabulate(profiling_result.items() , headers=["Parameter" , "Value"] , tablefmt='github'))
+            f.write(
+                tabulate(profiling_result.items(),
+                         headers=["Parameter", "Value"],
+                         tablefmt='github'))
             f.write("\n---\n")
             f.write(f"## Compiled Code\n")
             f.write(f"```hlo\n")

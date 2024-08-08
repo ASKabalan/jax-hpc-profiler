@@ -89,9 +89,9 @@ def create_argparser():
                                 ],
                                 help='Memory columns to plot')
     plot_parser.add_argument('-mu',
-                        '--memory_units',
-                        default='GB',
-                        help='Memory units to plot (KB, MB, GB, TB)')
+                             '--memory_units',
+                             default='GB',
+                             help='Memory units to plot (KB, MB, GB, TB)')
 
     # Plot customization arguments
     plot_parser.add_argument('-fs',

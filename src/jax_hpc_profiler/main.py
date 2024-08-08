@@ -15,7 +15,7 @@ def main():
         dataframes, available_gpu_counts, available_data_sizes = clean_up_csv(
             args.csv_files, args.precision, args.function_name, args.gpus,
             args.data_size, args.filter_pdims, args.pdim_strategy,
-            args.backends,args.memory_units)
+            args.backends, args.memory_units)
         if len(dataframes) == 0:
             print(f"No dataframes found for the given arguments. Exiting...")
             sys.exit(1)
@@ -29,12 +29,10 @@ def main():
             if data_size in available_data_sizes
         ]
         if len(args.gpus) == 0:
-            print(
-                f"No dataframes found for the given GPUs. Exiting...")
+            print(f"No dataframes found for the given GPUs. Exiting...")
             sys.exit(1)
         if len(args.data_size) == 0:
-            print(
-                f"No dataframes found for the given data sizes. Exiting...")
+            print(f"No dataframes found for the given data sizes. Exiting...")
             sys.exit(1)
 
         if args.scaling == 'Weak':
