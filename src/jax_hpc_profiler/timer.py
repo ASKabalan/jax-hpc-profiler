@@ -28,15 +28,14 @@ class Timer:
             return None
         return cost_analysis[0]['flops']
 
-    def _normalize_memory_units(self, memory_analysis) -> str:  
-        
-        sizes_str = ['B', 'KB', 'MB', 'GB', 'TB' , 'PB']
-        factors = [1 , 1024 , 1024**2 , 1024**3 , 1024**4 , 1024**5]
+    def _normalize_memory_units(self, memory_analysis) -> str:
+
+        sizes_str = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+        factors = [1, 1024, 1024**2, 1024**3, 1024**4, 1024**5]
         factor = int(np.log10(memory_analysis) // 3)
-        
+
         return f"{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}"
 
-    
     def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
         if memory_analysis is None:
             return None, None, None, None
@@ -68,12 +67,9 @@ class Timer:
         self.compiled_code["LOWERED"] = lowered.as_text()
         self.compiled_code["COMPILED"] = compiled.as_text()
         self.profiling_data["FLOPS"] = cost_analysis
-        self.profiling_data[
-            "generated_code"] = memory_analysis[0]
-        self.profiling_data[
-            "argument_size"] = memory_analysis[1]
-        self.profiling_data[
-            "output_size"] = memory_analysis[2]
+        self.profiling_data["generated_code"] = memory_analysis[0]
+        self.profiling_data["argument_size"] = memory_analysis[1]
+        self.profiling_data["output_size"] = memory_analysis[2]
         self.profiling_data["temp_size"] = memory_analysis[3]
         return out
 
@@ -101,7 +97,7 @@ class Timer:
         global_times = jax.make_array_from_callback(
             shape=global_shape,
             sharding=sharding,
-            data_callback=lambda _: jnp.expand_dims(times_array,axis=0))
+            data_callback=lambda _: jnp.expand_dims(times_array, axis=0))
 
         @partial(shard_map,
                  mesh=mesh,
@@ -141,90 +137,89 @@ class Timer:
         z = x if z is None else z
 
         times_array = self._get_mean_times()
-        min_time = np.min(times_array)
-        max_time = np.max(times_array)
-        mean_time = np.mean(times_array)
-        std_time = np.std(times_array)
-        last_time = times_array[-1]
+        if jax.process_index() == 0:
+            min_time = np.min(times_array)
+            max_time = np.max(times_array)
+            mean_time = np.mean(times_array)
+            std_time = np.std(times_array)
+            last_time = times_array[-1]
 
+            flops = self.profiling_data["FLOPS"]
+            generated_code = self.profiling_data["generated_code"]
+            argument_size = self.profiling_data["argument_size"]
+            output_size = self.profiling_data["output_size"]
+            temp_size = self.profiling_data["temp_size"]
 
-        flops = self.profiling_data["FLOPS"]
-        generated_code = self.profiling_data["generated_code"]
-        argument_size = self.profiling_data["argument_size"]
-        output_size = self.profiling_data["output_size"]
-        temp_size = self.profiling_data["temp_size"]
+            csv_line = (
+                f"{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},"
+                f"{self.jit_time:.4f},{min_time:.4f},{max_time:.4f},{mean_time:.4f},{std_time:.4f},{last_time:.4f},"
+                f"{generated_code},{argument_size},{output_size},{temp_size},{flops}\n"
+            )
 
-        csv_line = (
-            f"{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},"
-            f"{self.jit_time:.4f},{min_time:.4f},{max_time:.4f},{mean_time:.4f},{std_time:.4f},{last_time:.4f},"
-            f"{generated_code},{argument_size},{output_size},{temp_size},{flops}\n"
-        )
+            with open(csv_filename, 'a') as f:
+                f.write(csv_line)
 
-        with open(csv_filename, 'a') as f:
-            f.write(csv_line)
+            param_dict = {
+                "Function": function,
+                "Precision": precision,
+                "X": x,
+                "Y": y,
+                "Z": z,
+                "PX": px,
+                "PY": py,
+                "Backend": backend,
+                "Nodes": nodes,
+            }
+            param_dict.update(extra_info)
+            profiling_result = {
+                "JIT Time": self.jit_time,
+                "Min Time": min_time,
+                "Max Time": max_time,
+                "Mean Time": mean_time,
+                "Std Time": std_time,
+                "Last Time": last_time,
+                "Generated Code": self._normalize_memory_units(generated_code),
+                "Argument Size": self._normalize_memory_units(argument_size),
+                "Output Size": self._normalize_memory_units(output_size),
+                "Temporary Size": self._normalize_memory_units(temp_size),
+                "FLOPS": self.profiling_data["FLOPS"]
+            }
+            iteration_runs = {}
+            for i in range(len(times_array)):
+                iteration_runs[f"Run {i}"] = times_array[i]
 
-        param_dict = {
-            "Function": function,
-            "Precision": precision,
-            "X": x,
-            "Y": y,
-            "Z": z,
-            "PX": px,
-            "PY": py,
-            "Backend": backend,
-            "Nodes": nodes,
-        }
-        param_dict.update(extra_info)
-        profiling_result = {
-            "JIT Time": self.jit_time,
-            "Min Time": min_time,
-            "Max Time": max_time,
-            "Mean Time": mean_time,
-            "Std Time": std_time,
-            "Last Time": last_time,
-            "Generated Code": generated_code,
-            "Argument Size": argument_size,
-            "Output Size": output_size,
-            "Temporary Size": temp_size,
-            "FLOPS": self.profiling_data["FLOPS"]
-        }
-        iteration_runs = {}
-        for i in range(len(times_array)):
-            iteration_runs[f"Run {i}"] = times_array[i]
-
-        with open(md_filename, 'w') as f:
-            f.write(f"# Reporting for {function}\n")
-            f.write(f"## Parameters\n")
-            f.write(
-                tabulate(param_dict.items(),
-                         headers=["Parameter", "Value"],
-                         tablefmt='github'))
-            f.write("\n---\n")
-            f.write(f"## Profiling Data\n")
-            f.write(
-                tabulate(profiling_result.items(),
-                         headers=["Parameter", "Value"],
-                         tablefmt='github'))
-            f.write("\n---\n")
-            f.write(f"## Iteration Runs\n")
-            f.write(
-                tabulate(iteration_runs.items(),
-                         headers=["Iteration", "Time"],
-                         tablefmt='github'))
-            f.write("\n---\n")
-            f.write(f"## Compiled Code\n")
-            f.write(f"```hlo\n")
-            f.write(self.compiled_code["COMPILED"])
-            f.write(f"\n```\n")
-            f.write("\n---\n")
-            f.write(f"## Lowered Code\n")
-            f.write(f"```hlo\n")
-            f.write(self.compiled_code["LOWERED"])
-            f.write(f"\n```\n")
-            f.write("\n---\n")
-            if self.save_jaxpr:
-                f.write(f"## JAXPR\n")
-                f.write(f"```haskel\n")
-                f.write(self.compiled_code["JAXPR"])
+            with open(md_filename, 'w') as f:
+                f.write(f"# Reporting for {function}\n")
+                f.write(f"## Parameters\n")
+                f.write(
+                    tabulate(param_dict.items(),
+                             headers=["Parameter", "Value"],
+                             tablefmt='github'))
+                f.write("\n---\n")
+                f.write(f"## Profiling Data\n")
+                f.write(
+                    tabulate(profiling_result.items(),
+                             headers=["Parameter", "Value"],
+                             tablefmt='github'))
+                f.write("\n---\n")
+                f.write(f"## Iteration Runs\n")
+                f.write(
+                    tabulate(iteration_runs.items(),
+                             headers=["Iteration", "Time"],
+                             tablefmt='github'))
+                f.write("\n---\n")
+                f.write(f"## Compiled Code\n")
+                f.write(f"```hlo\n")
+                f.write(self.compiled_code["COMPILED"])
                 f.write(f"\n```\n")
-
+                f.write("\n---\n")
+                f.write(f"## Lowered Code\n")
+                f.write(f"```hlo\n")
+                f.write(self.compiled_code["LOWERED"])
+                f.write(f"\n```\n")
+                f.write("\n---\n")
+                if self.save_jaxpr:
+                    f.write(f"## JAXPR\n")
+                    f.write(f"```haskel\n")
+                    f.write(self.compiled_code["JAXPR"])
+                    f.write(f"\n```\n")
