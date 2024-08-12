@@ -40,14 +40,14 @@ class Timer:
     def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
         if memory_analysis is None:
             return None, None, None, None
-        return (self._normalize_memory_units(memory_analysis.generated_code_size_in_bytes),
-                self._normalize_memory_units(memory_analysis.argument_size_in_bytes),
-                self._normalize_memory_units(memory_analysis.output_size_in_bytes),
-                self._normalize_memory_units(memory_analysis.temp_size_in_bytes))
+        return (memory_analysis.generated_code_size_in_bytes,
+                memory_analysis.argument_size_in_bytes,
+                memory_analysis.output_size_in_bytes,
+                memory_analysis.temp_size_in_bytes)
 
     def chrono_jit(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
         start = time.perf_counter()
-        out = jax.jit(fun)(*args)
+        out = fun(*args)
         if ndarray_arg is None:
             out.block_until_ready()
         else:
@@ -101,7 +101,7 @@ class Timer:
         global_times = jax.make_array_from_callback(
             shape=global_shape,
             sharding=sharding,
-            data_callback=lambda x: times_array)
+            data_callback=lambda _: jnp.expand_dims(times_array,axis=0))
 
         @partial(shard_map,
                  mesh=mesh,
@@ -113,7 +113,7 @@ class Timer:
 
         times_array = get_mean_times(global_times)
         times_array.block_until_ready()
-        return np.array(times_array.addressable_data(0))
+        return np.array(times_array.addressable_data(0)[0])
 
     def report(self,
                csv_filename: str,
@@ -141,12 +141,12 @@ class Timer:
         z = x if z is None else z
 
         times_array = self._get_mean_times()
-
         min_time = np.min(times_array)
         max_time = np.max(times_array)
         mean_time = np.mean(times_array)
         std_time = np.std(times_array)
         last_time = times_array[-1]
+
 
         flops = self.profiling_data["FLOPS"]
         generated_code = self.profiling_data["generated_code"]
@@ -227,3 +227,4 @@ class Timer:
                 f.write(f"```haskel\n")
                 f.write(self.compiled_code["JAXPR"])
                 f.write(f"\n```\n")
+
