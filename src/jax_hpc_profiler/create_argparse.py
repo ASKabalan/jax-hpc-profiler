@@ -136,23 +136,25 @@ def create_argparser():
         default="%m%-%f%-%pn%-%pr%-%b%-%p%-%n%")
 
     args = parser.parse_args()
+    
+    # if command was plot, then check if pdim_strategy is validat
+    if args.command == 'plot':
+      if 'plot_all' in args.pdim_strategy and len(args.pdim_strategy) > 1:
+          print(
+              "Warning: 'plot_all' strategy is combined with other strategies. Using 'plot_all' only."
+          )
+          args.pdim_strategy = ['plot_all']
 
-    if 'plot_all' in args.pdim_strategy and len(args.pdim_strategy) > 1:
-        print(
-            "Warning: 'plot_all' strategy is combined with other strategies. Using 'plot_all' only."
-        )
-        args.pdim_strategy = ['plot_all']
-
-    if 'plot_fastest' in args.pdim_strategy and len(args.pdim_strategy) > 1:
-        print(
-            "Warning: 'plot_fastest' strategy is combined with other strategies. Using 'plot_fastest' only."
-        )
-        args.pdim_strategy = ['plot_fastest']
-    if args.plot_times is not None:
-        args.plot_columns = args.plot_times
-    elif args.plot_memory is not None:
-        args.plot_columns = args.plot_memory
-    else:
-        raise ValueError('Either plot_times or plot_memory should be provided')
+      if 'plot_fastest' in args.pdim_strategy and len(args.pdim_strategy) > 1:
+          print(
+              "Warning: 'plot_fastest' strategy is combined with other strategies. Using 'plot_fastest' only."
+          )
+          args.pdim_strategy = ['plot_fastest']
+      if args.plot_times is not None:
+          args.plot_columns = args.plot_times
+      elif args.plot_memory is not None:
+          args.plot_columns = args.plot_memory
+      else:
+          raise ValueError('Either plot_times or plot_memory should be provided')
 
     return args

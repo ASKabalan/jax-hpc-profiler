@@ -138,6 +138,7 @@ class Timer:
 
         times_array = self._get_mean_times()
         if jax.process_index() == 0:
+
             min_time = np.min(times_array)
             max_time = np.max(times_array)
             mean_time = np.mean(times_array)
