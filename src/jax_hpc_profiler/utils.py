@@ -123,7 +123,7 @@ def plot_with_pdims_strategy(ax: Axes, df: pd.DataFrame, method: str,
         # Sort all and keep fastest
         sorted_dfs = []
         for _, group in df_decomp:
-            group.sort_values(by=[y_col], inplace=True, ascending=False)
+            group.sort_values(by=[y_col], inplace=True, ascending=True)
             sorted_dfs.append(group.iloc[0])
         sorted_df = pd.DataFrame(sorted_dfs)
         label_params.update({

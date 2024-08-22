@@ -23,16 +23,11 @@ class Timer:
         self.compiled_code = {}
         self.save_jaxpr = save_jaxpr
 
-    def _read_cost_analysis(self, cost_analysis: Any) -> str | None:
-        if cost_analysis is None:
-            return None
-        return cost_analysis[0]['flops']
-
     def _normalize_memory_units(self, memory_analysis) -> str:
 
         sizes_str = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
         factors = [1, 1024, 1024**2, 1024**3, 1024**4, 1024**5]
-        factor = int(np.log10(memory_analysis) // 3)
+        factor = 0 if memory_analysis == 0 else int(np.log10(memory_analysis) // 3)
 
         return f"{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}"
 
@@ -62,11 +57,9 @@ class Timer:
         compiled = lowered.compile()
         memory_analysis = self._read_memory_analysis(
             compiled.memory_analysis())
-        cost_analysis = self._read_cost_analysis(compiled.cost_analysis())
 
         self.compiled_code["LOWERED"] = lowered.as_text()
         self.compiled_code["COMPILED"] = compiled.as_text()
-        self.profiling_data["FLOPS"] = cost_analysis
         self.profiling_data["generated_code"] = memory_analysis[0]
         self.profiling_data["argument_size"] = memory_analysis[1]
         self.profiling_data["output_size"] = memory_analysis[2]
@@ -145,7 +138,6 @@ class Timer:
             std_time = np.std(times_array)
             last_time = times_array[-1]
 
-            flops = self.profiling_data["FLOPS"]
             generated_code = self.profiling_data["generated_code"]
             argument_size = self.profiling_data["argument_size"]
             output_size = self.profiling_data["output_size"]
@@ -154,7 +146,7 @@ class Timer:
             csv_line = (
                 f"{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},"
                 f"{self.jit_time:.4f},{min_time:.4f},{max_time:.4f},{mean_time:.4f},{std_time:.4f},{last_time:.4f},"
-                f"{generated_code},{argument_size},{output_size},{temp_size},{flops}\n"
+                f"{generated_code},{argument_size},{output_size},{temp_size}\n"
             )
 
             with open(csv_filename, 'a') as f:

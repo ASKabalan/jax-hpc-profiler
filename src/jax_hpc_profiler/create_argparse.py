@@ -67,7 +67,6 @@ def create_argparser():
     plot_parser.add_argument('-fn',
                              '--function_name',
                              nargs='+',
-                             default=['FFT'],
                              help='Function names to filter')
 
     # Time or memory related arguments
@@ -134,6 +133,8 @@ def create_argparser():
         help=
         'Custom label for the plot. You can use placeholders: %decomposition% (or %p%), %precision% (or %pr%), %plot_name% (or %pn%), %backend% (or %b%), %node% (or %n%), %methodname% (or %m%)',
         default="%m%-%f%-%pn%-%pr%-%b%-%p%-%n%")
+
+    subparsers.add_parser('label_help',help='Label customization help')
 
     args = parser.parse_args()
     

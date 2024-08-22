@@ -10,7 +10,7 @@ from matplotlib.patches import FancyBboxPatch
 from .utils import inspect_df, plot_with_pdims_strategy
 
 np.seterr(divide='ignore')
-plt.rcParams.update({'font.size': 10})
+plt.rcParams.update({'font.size': 15})
 
 
 def configure_axes(ax: Axes,
@@ -38,7 +38,7 @@ def configure_axes(ax: Axes,
     f2 = lambda x: np.log2(x)
     g2 = lambda x: 2**x
     ax.set_xlim([min(x_values), max(x_values)])
-    y_min, y_max = min(y_values) * 0.9, max(y_values) * 1.1
+    y_min, y_max = min(y_values) * 0.6, max(y_values) * 1.1
     ax.set_title(title)
     ax.set_ylim([y_min, y_max])
     ax.set_xscale('function', functions=(f2, g2))
@@ -57,6 +57,7 @@ def configure_axes(ax: Axes,
     ax.legend(loc='lower center',
               bbox_to_anchor=(0.5, 0.05),
               ncol=4,
+              fontsize="x-large",
               prop={'size': 14})
 
 
