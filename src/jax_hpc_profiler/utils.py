@@ -336,12 +336,11 @@ def clean_up_csv(
         # Filter data sizes
         if data_sizes:
             df = df[df['x'].isin(data_sizes)]
-
+        
         # Filter pdims
         if pdims:
             px_list, py_list = zip(*[map(int, p.split('x')) for p in pdims])
             df = df[(df['px'].isin(px_list)) & (df['py'].isin(py_list))]
-
         # convert memory units columns to remquested memory_units
         match memory_units:
             case 'KB':
@@ -385,6 +384,7 @@ def clean_up_csv(
             df.drop(columns=['px', 'py'], inplace=True)
             if not 'plot_all' in pdims_strategy:
                 df = df[df['decomp'].isin(pdims_strategy)]
+
         # check available gpus in dataset
         available_gpu_counts.update(df['gpus'].unique())
         available_data_sizes.update(df['x'].unique())
