@@ -16,14 +16,18 @@ from tabulate import tabulate
 
 class Timer:
 
-    def __init__(self, save_jaxpr=False):
-        self.jit_time = None
+    def __init__(self, save_jaxpr=False , jax_fn = True):
+        self.jit_time = 0.0
         self.times = []
         self.profiling_data = {}
         self.compiled_code = {}
         self.save_jaxpr = save_jaxpr
+        self.jax_fn = jax_fn
 
     def _normalize_memory_units(self, memory_analysis) -> str:
+
+        if not self.jax_fn:
+            return memory_analysis
 
         sizes_str = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
         factors = [1, 1024, 1024**2, 1024**3, 1024**4, 1024**5]
@@ -42,10 +46,11 @@ class Timer:
     def chrono_jit(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
         start = time.perf_counter()
         out = fun(*args)
-        if ndarray_arg is None:
-            out.block_until_ready()
-        else:
-            out[ndarray_arg].block_until_ready()
+        if self.jax_fn:
+            if ndarray_arg is None:
+                out.block_until_ready()
+            else:
+                out[ndarray_arg].block_until_ready()
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
 
@@ -69,10 +74,11 @@ class Timer:
     def chrono_fun(self, fun: Callable, *args, ndarray_arg=None) -> np.ndarray:
         start = time.perf_counter()
         out = fun(*args)
-        if ndarray_arg is None:
-            out.block_until_ready()
-        else:
-            out[ndarray_arg].block_until_ready()
+        if self.jax_fn:
+            if ndarray_arg is None:
+                out.block_until_ready()
+            else:
+                out[ndarray_arg].block_until_ready()
         end = time.perf_counter()
         self.times.append((end - start) * 1e3)
         return out
@@ -138,10 +144,19 @@ class Timer:
             std_time = np.std(times_array)
             last_time = times_array[-1]
 
-            generated_code = self.profiling_data["generated_code"]
-            argument_size = self.profiling_data["argument_size"]
-            output_size = self.profiling_data["output_size"]
-            temp_size = self.profiling_data["temp_size"]
+            if self.jax_fn:
+
+                generated_code = self.profiling_data["generated_code"]
+                argument_size = self.profiling_data["argument_size"]
+                output_size = self.profiling_data["output_size"]
+                temp_size = self.profiling_data["temp_size"]
+                flops = self.profiling_data["FLOPS"]
+            else:
+                generated_code = "N/A"
+                argument_size = "N/A"
+                output_size = "N/A"
+                temp_size = "N/A"
+                flops = "N/A"
 
             csv_line = (
                 f"{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},"
@@ -175,7 +190,7 @@ class Timer:
                 "Argument Size": self._normalize_memory_units(argument_size),
                 "Output Size": self._normalize_memory_units(output_size),
                 "Temporary Size": self._normalize_memory_units(temp_size),
-                "FLOPS": self.profiling_data["FLOPS"]
+                "FLOPS": flops
             }
             iteration_runs = {}
             for i in range(len(times_array)):
@@ -200,19 +215,20 @@ class Timer:
                     tabulate(iteration_runs.items(),
                              headers=["Iteration", "Time"],
                              tablefmt='github'))
-                f.write("\n---\n")
-                f.write(f"## Compiled Code\n")
-                f.write(f"```hlo\n")
-                f.write(self.compiled_code["COMPILED"])
-                f.write(f"\n```\n")
-                f.write("\n---\n")
-                f.write(f"## Lowered Code\n")
-                f.write(f"```hlo\n")
-                f.write(self.compiled_code["LOWERED"])
-                f.write(f"\n```\n")
-                f.write("\n---\n")
-                if self.save_jaxpr:
-                    f.write(f"## JAXPR\n")
-                    f.write(f"```haskel\n")
-                    f.write(self.compiled_code["JAXPR"])
+                if self.jax_fn:
+                    f.write("\n---\n")
+                    f.write(f"## Compiled Code\n")
+                    f.write(f"```hlo\n")
+                    f.write(self.compiled_code["COMPILED"])
                     f.write(f"\n```\n")
+                    f.write("\n---\n")
+                    f.write(f"## Lowered Code\n")
+                    f.write(f"```hlo\n")
+                    f.write(self.compiled_code["LOWERED"])
+                    f.write(f"\n```\n")
+                    f.write("\n---\n")
+                    if self.save_jaxpr:
+                        f.write(f"## JAXPR\n")
+                        f.write(f"```haskel\n")
+                        f.write(self.compiled_code["JAXPR"])
+                        f.write(f"\n```\n")

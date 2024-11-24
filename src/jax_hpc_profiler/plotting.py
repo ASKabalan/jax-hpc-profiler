@@ -6,11 +6,13 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.patches import FancyBboxPatch
-
+import seaborn as sns
 from .utils import inspect_df, plot_with_pdims_strategy
 
 np.seterr(divide='ignore')
 plt.rcParams.update({'font.size': 15})
+
+sns.set_context("talk")
 
 
 def configure_axes(ax: Axes,
@@ -168,7 +170,7 @@ def plot_scaling(dataframes: Dict[str, pd.DataFrame],
     if output is None:
         plt.show()
     else:
-        plt.savefig(output, bbox_inches='tight', transparent=False)
+        plt.savefig(output, bbox_inches='tight', transparent=True)
 
 
 def plot_strong_scaling(dataframes: Dict[str, pd.DataFrame],
