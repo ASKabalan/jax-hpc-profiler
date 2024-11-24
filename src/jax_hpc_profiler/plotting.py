@@ -120,13 +120,13 @@ def plot_scaling(dataframes: Dict[str, pd.DataFrame],
         axs = axs.flatten()
     else:
         axs = [axs]
-
+    
     for i, fixed_size in enumerate(fixed_sizes):
         ax: Axes = axs[i]
 
+        x_values = []
+        y_values = []
         for method, df in dataframes.items():
-            x_values = []
-            y_values = []
 
             filtered_method_df = df[df[fixed_column] == int(fixed_size)]
             if filtered_method_df.empty:
@@ -139,6 +139,7 @@ def plot_scaling(dataframes: Dict[str, pd.DataFrame],
                                    plot_columns)
 
             for backend, precision, function, plot_column in combinations:
+              
                 filtered_params_df = filtered_method_df[
                     (filtered_method_df['backend'] == backend)
                     & (filtered_method_df['precision'] == precision) &
@@ -151,10 +152,11 @@ def plot_scaling(dataframes: Dict[str, pd.DataFrame],
 
                 x_values.extend(x_vals)
                 y_values.extend(y_vals)
-
-        plotting_memory = 'time' not in plot_columns[0].lower()
-        configure_axes(ax, x_values, y_values, f"{title} {fixed_size}", xlabel,
-                       plotting_memory, memory_units)
+        
+        if len(x_values) != 0: 
+          plotting_memory = 'time' not in plot_columns[0].lower()
+          configure_axes(ax, x_values, y_values, f"{title} {fixed_size}", xlabel,
+                         plotting_memory, memory_units)
 
     for i in range(num_subplots, num_rows * num_cols):
         fig.delaxes(axs[i])
