@@ -250,7 +250,7 @@ def clean_up_csv(
     pdims_strategy: List[str] = ['plot_fastest'],
     backends: List[str] = ['MPI', 'NCCL', 'MPI4JAX'],
     memory_units: str = 'KB',
-) -> Tuple[Dict[str, pd.DataFrame], set, set]:
+) -> Tuple[Dict[str, pd.DataFrame], List[int], List[int]]:
     """
     Clean up and aggregate data from CSV files.
 
@@ -336,7 +336,7 @@ def clean_up_csv(
         # Filter data sizes
         if data_sizes:
             df = df[df['x'].isin(data_sizes)]
-        
+
         # Filter pdims
         if pdims:
             px_list, py_list = zip(*[map(int, p.split('x')) for p in pdims])
@@ -393,5 +393,18 @@ def clean_up_csv(
             dataframes[file_name] = df
         else:
             dataframes[file_name] = pd.concat([dataframes[file_name], df])
+
+    print(f"requested GPUS: {gpus} available GPUS: {available_gpu_counts}")
+    print(
+        f"requested data sizes: {data_sizes} available data sizes: {available_data_sizes}"
+    )
+
+    available_gpu_counts = (available_gpu_counts if gpus is None else [
+        gpu for gpu in gpus if gpu in available_gpu_counts
+    ])
+    available_data_sizes = (available_data_sizes if data_sizes is None else [
+        data_size for data_size in data_sizes
+        if data_size in available_data_sizes
+    ])
 
     return dataframes, available_gpu_counts, available_data_sizes
