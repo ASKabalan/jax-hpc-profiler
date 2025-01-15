@@ -248,7 +248,7 @@ def clean_up_csv(
     data_sizes: Optional[List[int]] = None,
     pdims: Optional[List[str]] = None,
     pdims_strategy: List[str] = ['plot_fastest'],
-    backends: List[str] = ['MPI', 'NCCL', 'MPI4JAX'],
+    backends: Optional[List[str]] = None,
     memory_units: str = 'KB',
 ) -> Tuple[Dict[str, pd.DataFrame], List[int], List[int]]:
     """
@@ -331,11 +331,13 @@ def clean_up_csv(
         if function_names:
             df = df[df['function'].isin(function_names)]
         # Filter backends
-        df = df[df['backend'].isin(backends)]
+        if backends:
+            df = df[df['backend'].isin(backends)]
 
         # Filter data sizes
         if data_sizes:
             df = df[df['x'].isin(data_sizes)]
+
 
         # Filter pdims
         if pdims:

@@ -77,9 +77,9 @@ def plot_scaling(
     output: Optional[str] = None,
     dark_bg: bool = False,
     print_decompositions: bool = False,
-    backends: List[str] = ["NCCL"],
-    precisions: List[str] = ["float32"],
-    functions: List[str] | None = None,
+    backends: Optional[List[str]] = None,
+    precisions: Optional[List[str]] = None,
+    functions: Optional[List[str]] = None,
     plot_columns: List[str] = ["mean_time"],
     memory_units: str = "bytes",
     label_text: str = "plot",
@@ -141,6 +141,9 @@ def plot_scaling(
                 by=[size_column])
             functions = (pd.unique(filtered_method_df["function"])
                          if functions is None else functions)
+            precisions = (pd.unique(filtered_method_df["precision"]) if precisions is None else precisions)
+            backends = (pd.unique(filtered_method_df["backend"]) if backends is None else backends)
+            
             combinations = product(backends, precisions, functions,
                                    plot_columns)
 
@@ -199,12 +202,12 @@ def plot_strong_scaling(
     csv_files: List[str],
     fixed_gpu_size: Optional[List[int]] = None,
     fixed_data_size: Optional[List[int]] = None,
-    functions: List[str] | None = None,
-    precisions: List[str] = ["float32"],
+    functions:Optional[List[str]] = None,
+    precisions: Optional[List[str]] = None,
     pdims: Optional[List[str]] = None,
     pdims_strategy: List[str] = ["plot_fastest"],
     print_decompositions: bool = False,
-    backends: List[str] = ["NCCL"],
+    backends: Optional[List[str]] = None,
     plot_columns: List[str] = ["mean_time"],
     memory_units: str = "bytes",
     label_text: str = "%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
@@ -230,6 +233,7 @@ def plot_strong_scaling(
     if len(dataframes) == 0:
         print(f"No dataframes found for the given arguments. Exiting...")
         return
+        
 
     plot_scaling(
         dataframes,
@@ -256,12 +260,12 @@ def plot_weak_scaling(
     csv_files: List[str],
     fixed_gpu_size: Optional[List[int]] = None,
     fixed_data_size: Optional[List[int]] = None,
-    functions: List[str] | None = None,
-    precisions: List[str] = ["float32"],
+    functions:Optional[List[str]] = None,
+    precisions: Optional[List[str]] = None,
     pdims: Optional[List[str]] = None,
     pdims_strategy: List[str] = ["plot_fastest"],
     print_decompositions: bool = False,
-    backends: List[str] = ["NCCL"],
+    backends: Optional[List[str]] = None,
     plot_columns: List[str] = ["mean_time"],
     memory_units: str = "bytes",
     label_text: str = "%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
@@ -287,6 +291,7 @@ def plot_weak_scaling(
         print(f"No dataframes found for the given arguments. Exiting...")
         return
 
+        
     plot_scaling(
         dataframes,
         available_gpu_counts,

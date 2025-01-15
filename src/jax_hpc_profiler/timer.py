@@ -135,6 +135,9 @@ class Timer:
         md_filename: str | None = None,
         extra_info: dict = {},
     ):
+        if self.jit_time == 0.0 and len(self.times) == 0:
+            print(f"No profiling data to report for {function}")
+            return
 
         if md_filename is None:
             dirname, filename = (
