@@ -1,7 +1,7 @@
 import os
 import time
 from functools import partial
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -133,6 +133,7 @@ class Timer:
         backend: str = "NCCL",
         nodes: int = 1,
         md_filename: str | None = None,
+        npz_data : Optional[dict] = None,
         extra_info: dict = {},
     ):
         if self.jit_time == 0.0 and len(self.times) == 0:
@@ -149,6 +150,18 @@ class Timer:
             md_filename = (
                 f"{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.md"
             )
+
+        if npz_data is not None:
+            dirname, filename = (
+                os.path.dirname(csv_filename),
+                os.path.splitext(os.path.basename(csv_filename))[0],
+            )
+            report_folder = filename if dirname == "" else f"{dirname}/{filename}"
+            os.makedirs(report_folder, exist_ok=True)
+            npz_filename = (
+                f"{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.npz"
+            )
+            np.savez(npz_filename, **npz_data)
 
         y = x if y is None else y
         z = x if z is None else z
