@@ -338,7 +338,6 @@ def clean_up_csv(
         if data_sizes:
             df = df[df['x'].isin(data_sizes)]
 
-
         # Filter pdims
         if pdims:
             px_list, py_list = zip(*[map(int, p.split('x')) for p in pdims])
@@ -408,7 +407,5 @@ def clean_up_csv(
         data_size for data_size in data_sizes
         if data_size in available_data_sizes
     ])
-
-
 
     return dataframes, available_gpu_counts, available_data_sizes
