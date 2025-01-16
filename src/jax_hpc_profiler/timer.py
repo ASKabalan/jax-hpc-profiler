@@ -133,7 +133,7 @@ class Timer:
         backend: str = "NCCL",
         nodes: int = 1,
         md_filename: str | None = None,
-        npz_data : Optional[dict] = None,
+        npz_data: Optional[dict] = None,
         extra_info: dict = {},
     ):
         if self.jit_time == 0.0 and len(self.times) == 0:
