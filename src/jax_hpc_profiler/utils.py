@@ -292,7 +292,7 @@ def clean_up_csv(
 
         df = pd.read_csv(csv_file,
                          header=None,
-                         skiprows=1,
+                         skiprows=0,
                          names=[
                              "function", "precision", "x", "y", "z", "px",
                              "py", "backend", "nodes", "jit_time", "min_time",
