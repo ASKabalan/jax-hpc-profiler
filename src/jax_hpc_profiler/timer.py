@@ -16,18 +16,23 @@ from tabulate import tabulate
 
 class Timer:
 
-    def __init__(self, save_jaxpr=False, jax_fn=True, devices=None):
+    def __init__(self,
+                 save_jaxpr=False,
+                 compile_info=True,
+                 jax_fn=True,
+                 devices=None):
         self.jit_time = 0.0
         self.times = []
         self.profiling_data = {}
         self.compiled_code = {}
         self.save_jaxpr = save_jaxpr
+        self.compile_info = compile_info
         self.jax_fn = jax_fn
         self.devices = devices
 
     def _normalize_memory_units(self, memory_analysis) -> str:
 
-        if not self.jax_fn:
+        if not (self.jax_fn and self.compile_info):
             return memory_analysis
 
         sizes_str = ["B", "KB", "MB", "GB", "TB", "PB"]
@@ -58,11 +63,19 @@ class Timer:
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
 
+        self.compiled_code["JAXPR"] = "N/A"
+        self.compiled_code["LOWERED"] = "N/A"
+        self.compiled_code["COMPILED"] = "N/A"
+        self.profiling_data["generated_code"] = "N/A"
+        self.profiling_data["argument_size"] = "N/A"
+        self.profiling_data["output_size"] = "N/A"
+        self.profiling_data["temp_size"] = "N/A"
+
         if self.save_jaxpr:
             jaxpr = make_jaxpr(fun)(*args)
             self.compiled_code["JAXPR"] = jaxpr.pretty_print()
 
-        if self.jax_fn:
+        if self.jax_fn and self.compile_info:
             lowered = jax.jit(fun).lower(*args)
             compiled = lowered.compile()
             memory_analysis = self._read_memory_analysis(
@@ -174,18 +187,10 @@ class Timer:
             mean_time = np.mean(times_array)
             std_time = np.std(times_array)
             last_time = times_array[-1]
-
-            if self.jax_fn:
-
-                generated_code = self.profiling_data["generated_code"]
-                argument_size = self.profiling_data["argument_size"]
-                output_size = self.profiling_data["output_size"]
-                temp_size = self.profiling_data["temp_size"]
-            else:
-                generated_code = "N/A"
-                argument_size = "N/A"
-                output_size = "N/A"
-                temp_size = "N/A"
+            generated_code = self.profiling_data["generated_code"]
+            argument_size = self.profiling_data["argument_size"]
+            output_size = self.profiling_data["output_size"]
+            temp_size = self.profiling_data["temp_size"]
 
             csv_line = (
                 f"{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},"
@@ -249,7 +254,7 @@ class Timer:
                         headers=["Iteration", "Time"],
                         tablefmt="github",
                     ))
-                if self.jax_fn:
+                if self.jax_fn and self.compile_info:
                     f.write("\n---\n")
                     f.write(f"## Compiled Code\n")
                     f.write(f"```hlo\n")
