@@ -168,6 +168,19 @@ def create_argparser():
         default="%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
     )
 
+    plot_parser.add_argument(
+        "-xl",
+        "--xlabel",
+        type=str,
+        help="X-axis label for the plot",
+    )
+    plot_parser.add_argument(
+        "-tl",
+        "--title",
+        type=str,
+        help="Title for the plot",
+    )
+
     subparsers.add_parser("label_help", help="Label customization help")
 
     args = parser.parse_args()
