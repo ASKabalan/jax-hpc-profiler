@@ -20,7 +20,9 @@ class Timer:
                  save_jaxpr=False,
                  compile_info=True,
                  jax_fn=True,
-                 devices=None, ndarray_arg=None , static_argnums=()):
+                 devices=None,
+                 ndarray_arg=None,
+                 static_argnums=()):
         self.jit_time = 0.0
         self.times = []
         self.profiling_data = {}
@@ -54,14 +56,15 @@ class Timer:
             memory_analysis.temp_size_in_bytes,
         )
 
-    def chrono_jit(self, fun: Callable, *args , **kwargs) -> np.ndarray:
+    def chrono_jit(self, fun: Callable, *args, **kwargs) -> np.ndarray:
         start = time.perf_counter()
-        out = fun(*args , **kwargs)
+        out = fun(*args, **kwargs)
         if self.jax_fn:
             if self.ndarray_arg is None:
                 jax.tree.map(lambda x: x.block_until_ready(), out)
             else:
-                jax.tree.map(lambda x: x.block_until_ready(), out[self.ndarray_arg])
+                jax.tree.map(lambda x: x.block_until_ready(),
+                             out[self.ndarray_arg])
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
 
@@ -74,11 +77,14 @@ class Timer:
         self.profiling_data["temp_size"] = "N/A"
 
         if self.save_jaxpr:
-            jaxpr = make_jaxpr(fun , static_argnums=self.static_argnums)(*args , **kwargs)
+            jaxpr = make_jaxpr(fun,
+                               static_argnums=self.static_argnums)(*args,
+                                                                   **kwargs)
             self.compiled_code["JAXPR"] = jaxpr.pretty_print()
 
         if self.jax_fn and self.compile_info:
-            lowered = jax.jit(fun ,  static_argnums=self.static_argnums).lower(*args , **kwargs)
+            lowered = jax.jit(fun, static_argnums=self.static_argnums).lower(
+                *args, **kwargs)
             compiled = lowered.compile()
             memory_analysis = self._read_memory_analysis(
                 compiled.memory_analysis())
@@ -94,12 +100,13 @@ class Timer:
 
     def chrono_fun(self, fun: Callable, *args, **kwargs) -> np.ndarray:
         start = time.perf_counter()
-        out = fun(*args , **kwargs)
+        out = fun(*args, **kwargs)
         if self.jax_fn:
             if self.ndarray_arg is None:
                 jax.tree.map(lambda x: x.block_until_ready(), out)
             else:
-                jax.tree.map(lambda x: x.block_until_ready(), out[self.ndarray_arg])
+                jax.tree.map(lambda x: x.block_until_ready(),
+                             out[self.ndarray_arg])
         end = time.perf_counter()
         self.times.append((end - start) * 1e3)
         return out
