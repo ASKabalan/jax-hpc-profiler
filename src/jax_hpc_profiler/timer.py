@@ -11,6 +11,7 @@ from jax.experimental import mesh_utils
 from jax.experimental.shard_map import shard_map
 from jax.sharding import Mesh, NamedSharding
 from jax.sharding import PartitionSpec as P
+from jaxtyping import Array
 from tabulate import tabulate
 
 
@@ -21,7 +22,6 @@ class Timer:
                  compile_info=True,
                  jax_fn=True,
                  devices=None,
-                 ndarray_arg=None,
                  static_argnums=()):
         self.jit_time = 0.0
         self.times = []
@@ -31,7 +31,6 @@ class Timer:
         self.compile_info = compile_info
         self.jax_fn = jax_fn
         self.devices = devices
-        self.ndarray_arg = ndarray_arg
         self.static_argnums = static_argnums
 
     def _normalize_memory_units(self, memory_analysis) -> str:
@@ -56,15 +55,16 @@ class Timer:
             memory_analysis.temp_size_in_bytes,
         )
 
-    def chrono_jit(self, fun: Callable, *args, **kwargs) -> np.ndarray:
+    def chrono_jit(self, fun: Callable, *args, **kwargs) -> Array:
         start = time.perf_counter()
         out = fun(*args, **kwargs)
         if self.jax_fn:
-            if self.ndarray_arg is None:
-                jax.tree.map(lambda x: x.block_until_ready(), out)
-            else:
-                jax.tree.map(lambda x: x.block_until_ready(),
-                             out[self.ndarray_arg])
+
+            def _block(x):
+                if isinstance(x, Array):
+                    x.block_until_ready()
+
+            jax.tree_map(_block, out)
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
 
@@ -98,20 +98,21 @@ class Timer:
 
         return out
 
-    def chrono_fun(self, fun: Callable, *args, **kwargs) -> np.ndarray:
+    def chrono_fun(self, fun: Callable, *args, **kwargs) -> Array:
         start = time.perf_counter()
         out = fun(*args, **kwargs)
         if self.jax_fn:
-            if self.ndarray_arg is None:
-                jax.tree.map(lambda x: x.block_until_ready(), out)
-            else:
-                jax.tree.map(lambda x: x.block_until_ready(),
-                             out[self.ndarray_arg])
+
+            def _block(x):
+                if isinstance(x, Array):
+                    x.block_until_ready()
+
+            jax.tree_map(_block, out)
         end = time.perf_counter()
         self.times.append((end - start) * 1e3)
         return out
 
-    def _get_mean_times(self) -> np.ndarray:
+    def _get_mean_times(self) -> Array:
         if jax.device_count() == 1 or jax.process_count() == 1:
             return np.array(self.times)
 

@@ -17,8 +17,8 @@ def configure_axes(
     ax: Axes,
     x_values: List[int],
     y_values: List[float],
-    xlabel: str,
     title: str,
+    xlabel: str,
     plotting_memory: bool = False,
     memory_units: str = "bytes",
 ):
@@ -173,14 +173,12 @@ def plot_scaling(
 
         if len(x_values) != 0:
             plotting_memory = "time" not in plot_columns[0].lower()
-            plotting_title = f"{title} {fixed_size}" if len(
-                fixed_sizes) > 1 else title
             configure_axes(
                 ax,
                 x_values,
                 y_values,
+                f"{title} {fixed_size}",
                 xlabel,
-                plotting_title,
                 plotting_memory,
                 memory_units,
             )
@@ -214,9 +212,9 @@ def plot_strong_scaling(
     backends: Optional[List[str]] = None,
     plot_columns: List[str] = ["mean_time"],
     memory_units: str = "bytes",
-    title: Optional[str] = None,
-    xlabel: Optional[str] = None,
     label_text: str = "%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
+    xlabel: str = "Number of GPUs",
+    title: str = "Data sizes",
     figure_size: tuple = (6, 4),
     dark_bg: bool = False,
     output: Optional[str] = None,
@@ -239,9 +237,6 @@ def plot_strong_scaling(
     if len(dataframes) == 0:
         print(f"No dataframes found for the given arguments. Exiting...")
         return
-
-    xlabel = "GPUs" if xlabel is None else xlabel
-    title = "Data size" if title is None else title
 
     plot_scaling(
         dataframes,
@@ -276,9 +271,9 @@ def plot_weak_scaling(
     backends: Optional[List[str]] = None,
     plot_columns: List[str] = ["mean_time"],
     memory_units: str = "bytes",
-    title: Optional[str] = None,
-    xlabel: Optional[str] = None,
     label_text: str = "%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
+    xlabel: str = "Data sizes",
+    title: str = "Number of GPUs",
     figure_size: tuple = (6, 4),
     dark_bg: bool = False,
     output: Optional[str] = None,
@@ -300,9 +295,6 @@ def plot_weak_scaling(
     if len(dataframes) == 0:
         print(f"No dataframes found for the given arguments. Exiting...")
         return
-
-    xlabel = "Data size" if xlabel is None else xlabel
-    title = "Number of GPUs" if title is None else title
 
     plot_scaling(
         dataframes,
