@@ -11,8 +11,9 @@ from jax.experimental import mesh_utils
 from jax.experimental.shard_map import shard_map
 from jax.sharding import Mesh, NamedSharding
 from jax.sharding import PartitionSpec as P
-from tabulate import tabulate
 from jaxtyping import Array
+from tabulate import tabulate
+
 
 class Timer:
 
@@ -58,9 +59,11 @@ class Timer:
         start = time.perf_counter()
         out = fun(*args, **kwargs)
         if self.jax_fn:
+
             def _block(x):
-                if isinstance(x , Array):
+                if isinstance(x, Array):
                     x.block_until_ready()
+
             jax.tree_map(_block, out)
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
@@ -99,9 +102,11 @@ class Timer:
         start = time.perf_counter()
         out = fun(*args, **kwargs)
         if self.jax_fn:
+
             def _block(x):
-                if isinstance(x , Array):
+                if isinstance(x, Array):
                     x.block_until_ready()
+
             jax.tree_map(_block, out)
         end = time.perf_counter()
         self.times.append((end - start) * 1e3)
