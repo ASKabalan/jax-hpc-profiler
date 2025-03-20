@@ -1,5 +1,3 @@
-Here's the updated README with the additional information about the timer.report and the multi-GPU setup:
-
 # JAX HPC Profiler
 
 JAX HPC Profiler is a tool designed for benchmarking and visualizing performance data in high-performance computing (HPC) environments. It provides functionalities to generate, concatenate, and plot CSV data from various runs.
