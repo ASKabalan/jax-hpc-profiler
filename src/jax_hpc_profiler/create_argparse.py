@@ -10,28 +10,24 @@ def create_argparser():
     argparse.Namespace
         Parsed and validated arguments.
     """
-    parser = argparse.ArgumentParser(
-        description="HPC Plotter for benchmarking data")
+    parser = argparse.ArgumentParser(description="HPC Plotter for benchmarking data")
 
     # Group for concatenation to ensure mutually exclusive behavior
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    concat_parser = subparsers.add_parser("concat",
-                                          help="Concatenate CSV files")
-    concat_parser.add_argument("input",
-                               type=str,
-                               help="Input directory for concatenation")
-    concat_parser.add_argument("output",
-                               type=str,
-                               help="Output directory for concatenation")
+    concat_parser = subparsers.add_parser("concat", help="Concatenate CSV files")
+    concat_parser.add_argument(
+        "input", type=str, help="Input directory for concatenation"
+    )
+    concat_parser.add_argument(
+        "output", type=str, help="Output directory for concatenation"
+    )
 
     # Arguments for plotting
     plot_parser = subparsers.add_parser("plot", help="Plot CSV data")
-    plot_parser.add_argument("-f",
-                             "--csv_files",
-                             nargs="+",
-                             help="List of CSV files to plot",
-                             required=True)
+    plot_parser.add_argument(
+        "-f", "--csv_files", nargs="+", help="List of CSV files to plot", required=True
+    )
     plot_parser.add_argument(
         "-g",
         "--gpus",
@@ -103,9 +99,7 @@ def create_argparser():
         "-pm",
         "--plot_memory",
         nargs="*",
-        choices=[
-            "generated_code", "argument_size", "output_size", "temp_size"
-        ],
+        choices=["generated_code", "argument_size", "output_size", "temp_size"],
         help="Memory columns to plot",
     )
     plot_parser.add_argument(
@@ -116,20 +110,15 @@ def create_argparser():
     )
 
     # Plot customization arguments
-    plot_parser.add_argument("-fs",
-                             "--figure_size",
-                             nargs=2,
-                             type=int,
-                             help="Figure size",
-                             default=(10, 6))
-    plot_parser.add_argument("-o",
-                             "--output",
-                             help="Output file (if none then only show plot)",
-                             default=None)
-    plot_parser.add_argument("-db",
-                             "--dark_bg",
-                             action="store_true",
-                             help="Use dark background for plotting")
+    plot_parser.add_argument(
+        "-fs", "--figure_size", nargs=2, type=int, help="Figure size", default=(10, 6)
+    )
+    plot_parser.add_argument(
+        "-o", "--output", help="Output file (if none then only show plot)", default=None
+    )
+    plot_parser.add_argument(
+        "-db", "--dark_bg", action="store_true", help="Use dark background for plotting"
+    )
     plot_parser.add_argument(
         "-pd",
         "--print_decompositions",
@@ -160,11 +149,11 @@ def create_argparser():
         "-l",
         "--label_text",
         type=str,
-        help=
-        ("Custom label for the plot. You can use placeholders: %%decomposition%% "
-         "(or %%p%%), %%precision%% (or %%pr%%), %%plot_name%% (or %%pn%%), "
-         "%%backend%% (or %%b%%), %%node%% (or %%n%%), %%methodname%% (or %%m%%)"
-         ),
+        help=(
+            "Custom label for the plot. You can use placeholders: %%decomposition%% "
+            "(or %%p%%), %%precision%% (or %%pr%%), %%plot_name%% (or %%pn%%), "
+            "%%backend%% (or %%b%%), %%node%% (or %%n%%), %%methodname%% (or %%m%%)"
+        ),
         default="%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
     )
 
@@ -193,8 +182,7 @@ def create_argparser():
             )
             args.pdim_strategy = ["plot_all"]
 
-        if "plot_fastest" in args.pdim_strategy and len(
-                args.pdim_strategy) > 1:
+        if "plot_fastest" in args.pdim_strategy and len(args.pdim_strategy) > 1:
             print(
                 "Warning: 'plot_fastest' strategy is combined with other strategies. Using 'plot_fastest' only."
             )
@@ -204,7 +192,6 @@ def create_argparser():
         elif args.plot_memory is not None:
             args.plot_columns = args.plot_memory
         else:
-            raise ValueError(
-                "Either plot_times or plot_memory should be provided")
+            raise ValueError("Either plot_times or plot_memory should be provided")
 
     return args

@@ -1,9 +1,6 @@
-import sys
-from typing import List, Optional
-
 from .create_argparse import create_argparser
 from .plotting import plot_strong_scaling, plot_weak_scaling
-from .utils import clean_up_csv, concatenate_csvs
+from .utils import concatenate_csvs
 
 
 def main():
@@ -13,7 +10,7 @@ def main():
         input_dir, output_dir = args.input, args.output
         concatenate_csvs(input_dir, output_dir)
     elif args.command == "label_help":
-        print(f"Customize the label text for the plot. using these commands.")
+        print("Customize the label text for the plot. using these commands.")
         print(" -- %m% or %methodname%: method name")
         print(" -- %f% or %function%: function name")
         print(" -- %pn% or %plot_name%: plot name")
@@ -22,7 +19,6 @@ def main():
         print(" -- %p% or %pdims%: pdims")
         print(" -- %n% or %node%: node")
     elif args.command == "plot":
-
         if args.scaling.lower() == "weak" or args.scaling.lower() == "w":
             plot_weak_scaling(
                 args.csv_files,
