@@ -1,28 +1,28 @@
 import os
 import time
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import make_jaxpr
-from jax.experimental import mesh_utils
 from jax.experimental.shard_map import shard_map
-from jax.sharding import Mesh, NamedSharding
+from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
 from jaxtyping import Array
 from tabulate import tabulate
 
 
 class Timer:
-
-    def __init__(self,
-                 save_jaxpr=False,
-                 compile_info=True,
-                 jax_fn=True,
-                 devices=None,
-                 static_argnums=()):
+    def __init__(
+        self,
+        save_jaxpr=False,
+        compile_info=True,
+        jax_fn=True,
+        devices=None,
+        static_argnums=(),
+    ):
         self.jit_time = 0.0
         self.times = []
         self.profiling_data = {}
@@ -34,14 +34,12 @@ class Timer:
         self.static_argnums = static_argnums
 
     def _normalize_memory_units(self, memory_analysis) -> str:
-
         if not (self.jax_fn and self.compile_info):
             return memory_analysis
 
         sizes_str = ["B", "KB", "MB", "GB", "TB", "PB"]
         factors = [1, 1024, 1024**2, 1024**3, 1024**4, 1024**5]
-        factor = 0 if memory_analysis == 0 else int(
-            np.log10(memory_analysis) // 3)
+        factor = 0 if memory_analysis == 0 else int(np.log10(memory_analysis) // 3)
 
         return f"{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}"
 
@@ -64,7 +62,7 @@ class Timer:
                 if isinstance(x, Array):
                     x.block_until_ready()
 
-            jax.tree_map(_block, out)
+            jax.tree.map(_block, out)
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
 
@@ -77,17 +75,15 @@ class Timer:
         self.profiling_data["temp_size"] = "N/A"
 
         if self.save_jaxpr:
-            jaxpr = make_jaxpr(fun,
-                               static_argnums=self.static_argnums)(*args,
-                                                                   **kwargs)
+            jaxpr = make_jaxpr(fun, static_argnums=self.static_argnums)(*args, **kwargs)
             self.compiled_code["JAXPR"] = jaxpr.pretty_print()
 
         if self.jax_fn and self.compile_info:
             lowered = jax.jit(fun, static_argnums=self.static_argnums).lower(
-                *args, **kwargs)
+                *args, **kwargs
+            )
             compiled = lowered.compile()
-            memory_analysis = self._read_memory_analysis(
-                compiled.memory_analysis())
+            memory_analysis = self._read_memory_analysis(compiled.memory_analysis())
 
             self.compiled_code["LOWERED"] = lowered.as_text()
             self.compiled_code["COMPILED"] = compiled.as_text()
@@ -107,7 +103,7 @@ class Timer:
                 if isinstance(x, Array):
                     x.block_until_ready()
 
-            jax.tree_map(_block, out)
+            jax.tree.map(_block, out)
         end = time.perf_counter()
         self.times.append((end - start) * 1e3)
         return out
@@ -119,8 +115,7 @@ class Timer:
         if self.devices is None:
             self.devices = jax.devices()
 
-        mesh = jax.make_mesh((len(self.devices), ), ("x", ),
-                             devices=self.devices)
+        mesh = jax.make_mesh((len(self.devices),), ("x",), devices=self.devices)
         sharding = NamedSharding(mesh, P("x"))
 
         times_array = jnp.array(self.times)
@@ -131,11 +126,7 @@ class Timer:
             data_callback=lambda _: jnp.expand_dims(times_array, axis=0),
         )
 
-        @partial(shard_map,
-                 mesh=mesh,
-                 in_specs=P("x"),
-                 out_specs=P(),
-                 check_rep=False)
+        @partial(shard_map, mesh=mesh, in_specs=P("x"), out_specs=P(), check_rep=False)
         def get_mean_times(times):
             return jax.lax.pmean(times, axis_name="x")
 
@@ -191,7 +182,6 @@ class Timer:
 
         times_array = self._get_mean_times()
         if jax.process_index() == 0:
-
             min_time = np.min(times_array)
             max_time = np.max(times_array)
             mean_time = np.mean(times_array)
@@ -241,46 +231,49 @@ class Timer:
 
             with open(md_filename, "w") as f:
                 f.write(f"# Reporting for {function}\n")
-                f.write(f"## Parameters\n")
+                f.write("## Parameters\n")
                 f.write(
                     tabulate(
                         param_dict.items(),
                         headers=["Parameter", "Value"],
                         tablefmt="github",
-                    ))
+                    )
+                )
                 f.write("\n---\n")
-                f.write(f"## Profiling Data\n")
+                f.write("## Profiling Data\n")
                 f.write(
                     tabulate(
                         profiling_result.items(),
                         headers=["Parameter", "Value"],
                         tablefmt="github",
-                    ))
+                    )
+                )
                 f.write("\n---\n")
-                f.write(f"## Iteration Runs\n")
+                f.write("## Iteration Runs\n")
                 f.write(
                     tabulate(
                         iteration_runs.items(),
                         headers=["Iteration", "Time"],
                         tablefmt="github",
-                    ))
+                    )
+                )
                 if self.jax_fn and self.compile_info:
                     f.write("\n---\n")
-                    f.write(f"## Compiled Code\n")
-                    f.write(f"```hlo\n")
+                    f.write("## Compiled Code\n")
+                    f.write("```hlo\n")
                     f.write(self.compiled_code["COMPILED"])
-                    f.write(f"\n```\n")
+                    f.write("\n```\n")
                     f.write("\n---\n")
-                    f.write(f"## Lowered Code\n")
-                    f.write(f"```hlo\n")
+                    f.write("## Lowered Code\n")
+                    f.write("```hlo\n")
                     f.write(self.compiled_code["LOWERED"])
-                    f.write(f"\n```\n")
+                    f.write("\n```\n")
                     f.write("\n---\n")
                     if self.save_jaxpr:
-                        f.write(f"## JAXPR\n")
-                        f.write(f"```haskel\n")
+                        f.write("## JAXPR\n")
+                        f.write("```haskel\n")
                         f.write(self.compiled_code["JAXPR"])
-                        f.write(f"\n```\n")
+                        f.write("\n```\n")
 
         # Reset the timer
         self.jit_time = 0.0
