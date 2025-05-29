@@ -47,3 +47,30 @@ urls = { "Homepage" = "https://github.com/ASKabalan/jax-hpc-profiler" }
 
 [project.scripts]
 jhp = "jax_hpc_profiler.main:main"
+
+
+
+[tool.ruff]
+line-length = 100
+fix = true           # autofix issues
+force-exclude = true # useful with ruff-pre-commit plugin
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    'ARG001', # flake8-unused-function-arguments
+    'E',      # pycodestyle-errors
+    'F',      # pyflakes
+    'I',      # isort
+    'UP',     # pyupgrade
+    'T10',    # flake8-debugger
+]
+ignore = [
+    'E203',
+    'E731',
+    'E741',
+    'F722', # conflicts with jaxtyping Array annotations
+]
+
+[tool.ruff.format]
+quote-style = 'single'

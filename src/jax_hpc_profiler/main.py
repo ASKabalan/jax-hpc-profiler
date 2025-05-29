@@ -6,20 +6,20 @@ from .utils import concatenate_csvs
 def main():
     args = create_argparser()
 
-    if args.command == "concat":
+    if args.command == 'concat':
         input_dir, output_dir = args.input, args.output
         concatenate_csvs(input_dir, output_dir)
-    elif args.command == "label_help":
-        print("Customize the label text for the plot. using these commands.")
-        print(" -- %m% or %methodname%: method name")
-        print(" -- %f% or %function%: function name")
-        print(" -- %pn% or %plot_name%: plot name")
-        print(" -- %pr% or %precision%: precision")
-        print(" -- %b% or %backend%: backend")
-        print(" -- %p% or %pdims%: pdims")
-        print(" -- %n% or %node%: node")
-    elif args.command == "plot":
-        if args.scaling.lower() == "weak" or args.scaling.lower() == "w":
+    elif args.command == 'label_help':
+        print('Customize the label text for the plot. using these commands.')
+        print(' -- %m% or %methodname%: method name')
+        print(' -- %f% or %function%: function name')
+        print(' -- %pn% or %plot_name%: plot name')
+        print(' -- %pr% or %precision%: precision')
+        print(' -- %b% or %backend%: backend')
+        print(' -- %p% or %pdims%: pdims')
+        print(' -- %n% or %node%: node')
+    elif args.command == 'plot':
+        if args.scaling.lower() == 'weak' or args.scaling.lower() == 'w':
             plot_weak_scaling(
                 args.csv_files,
                 args.gpus,
@@ -39,7 +39,7 @@ def main():
                 args.dark_bg,
                 args.output,
             )
-        elif args.scaling.lower() == "strong" or args.scaling.lower() == "s":
+        elif args.scaling.lower() == 'strong' or args.scaling.lower() == 's':
             plot_strong_scaling(
                 args.csv_files,
                 args.gpus,
@@ -61,5 +61,5 @@ def main():
             )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

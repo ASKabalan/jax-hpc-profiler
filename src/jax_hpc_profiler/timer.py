@@ -37,11 +37,11 @@ class Timer:
         if not (self.jax_fn and self.compile_info):
             return memory_analysis
 
-        sizes_str = ["B", "KB", "MB", "GB", "TB", "PB"]
+        sizes_str = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
         factors = [1, 1024, 1024**2, 1024**3, 1024**4, 1024**5]
         factor = 0 if memory_analysis == 0 else int(np.log10(memory_analysis) // 3)
 
-        return f"{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}"
+        return f'{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}'
 
     def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
         if memory_analysis is None:
@@ -66,31 +66,29 @@ class Timer:
         end = time.perf_counter()
         self.jit_time = (end - start) * 1e3
 
-        self.compiled_code["JAXPR"] = "N/A"
-        self.compiled_code["LOWERED"] = "N/A"
-        self.compiled_code["COMPILED"] = "N/A"
-        self.profiling_data["generated_code"] = "N/A"
-        self.profiling_data["argument_size"] = "N/A"
-        self.profiling_data["output_size"] = "N/A"
-        self.profiling_data["temp_size"] = "N/A"
+        self.compiled_code['JAXPR'] = 'N/A'
+        self.compiled_code['LOWERED'] = 'N/A'
+        self.compiled_code['COMPILED'] = 'N/A'
+        self.profiling_data['generated_code'] = 'N/A'
+        self.profiling_data['argument_size'] = 'N/A'
+        self.profiling_data['output_size'] = 'N/A'
+        self.profiling_data['temp_size'] = 'N/A'
 
         if self.save_jaxpr:
             jaxpr = make_jaxpr(fun, static_argnums=self.static_argnums)(*args, **kwargs)
-            self.compiled_code["JAXPR"] = jaxpr.pretty_print()
+            self.compiled_code['JAXPR'] = jaxpr.pretty_print()
 
         if self.jax_fn and self.compile_info:
-            lowered = jax.jit(fun, static_argnums=self.static_argnums).lower(
-                *args, **kwargs
-            )
+            lowered = jax.jit(fun, static_argnums=self.static_argnums).lower(*args, **kwargs)
             compiled = lowered.compile()
             memory_analysis = self._read_memory_analysis(compiled.memory_analysis())
 
-            self.compiled_code["LOWERED"] = lowered.as_text()
-            self.compiled_code["COMPILED"] = compiled.as_text()
-            self.profiling_data["generated_code"] = memory_analysis[0]
-            self.profiling_data["argument_size"] = memory_analysis[1]
-            self.profiling_data["output_size"] = memory_analysis[2]
-            self.profiling_data["temp_size"] = memory_analysis[3]
+            self.compiled_code['LOWERED'] = lowered.as_text()
+            self.compiled_code['COMPILED'] = compiled.as_text()
+            self.profiling_data['generated_code'] = memory_analysis[0]
+            self.profiling_data['argument_size'] = memory_analysis[1]
+            self.profiling_data['output_size'] = memory_analysis[2]
+            self.profiling_data['temp_size'] = memory_analysis[3]
 
         return out
 
@@ -115,8 +113,8 @@ class Timer:
         if self.devices is None:
             self.devices = jax.devices()
 
-        mesh = jax.make_mesh((len(self.devices),), ("x",), devices=self.devices)
-        sharding = NamedSharding(mesh, P("x"))
+        mesh = jax.make_mesh((len(self.devices),), ('x',), devices=self.devices)
+        sharding = NamedSharding(mesh, P('x'))
 
         times_array = jnp.array(self.times)
         global_shape = (jax.device_count(), times_array.shape[0])
@@ -126,9 +124,9 @@ class Timer:
             data_callback=lambda _: jnp.expand_dims(times_array, axis=0),
         )
 
-        @partial(shard_map, mesh=mesh, in_specs=P("x"), out_specs=P(), check_rep=False)
-        def get_mean_times(times):
-            return jax.lax.pmean(times, axis_name="x")
+        @partial(shard_map, mesh=mesh, in_specs=P('x'), out_specs=P(), check_rep=False)
+        def get_mean_times(times) -> Array:
+            return jax.lax.pmean(times, axis_name='x')
 
         times_array = get_mean_times(global_times)
         times_array.block_until_ready()
@@ -141,17 +139,17 @@ class Timer:
         x: int,
         y: int | None = None,
         z: int | None = None,
-        precision: str = "float32",
+        precision: str = 'float32',
         px: int = 1,
         py: int = 1,
-        backend: str = "NCCL",
+        backend: str = 'NCCL',
         nodes: int = 1,
         md_filename: str | None = None,
-        npz_data: Optional[dict] = None,
-        extra_info: dict = {},
-    ):
+        npz_data: Optional[dict[str, Any]] = None,
+        extra_info: dict[str, Any] = {},
+    ) -> None:
         if self.jit_time == 0.0 and len(self.times) == 0:
-            print(f"No profiling data to report for {function}")
+            print(f'No profiling data to report for {function}')
             return
 
         if md_filename is None:
@@ -159,22 +157,18 @@ class Timer:
                 os.path.dirname(csv_filename),
                 os.path.splitext(os.path.basename(csv_filename))[0],
             )
-            report_folder = filename if dirname == "" else f"{dirname}/{filename}"
+            report_folder = filename if dirname == '' else f'{dirname}/{filename}'
             os.makedirs(report_folder, exist_ok=True)
-            md_filename = (
-                f"{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.md"
-            )
+            md_filename = f'{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.md'
 
         if npz_data is not None:
             dirname, filename = (
                 os.path.dirname(csv_filename),
                 os.path.splitext(os.path.basename(csv_filename))[0],
             )
-            report_folder = filename if dirname == "" else f"{dirname}/{filename}"
+            report_folder = filename if dirname == '' else f'{dirname}/{filename}'
             os.makedirs(report_folder, exist_ok=True)
-            npz_filename = (
-                f"{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.npz"
-            )
+            npz_filename = f'{report_folder}/{x}_{px}_{py}_{backend}_{precision}_{function}.npz'
             np.savez(npz_filename, **npz_data)
 
         y = x if y is None else y
@@ -187,93 +181,93 @@ class Timer:
             mean_time = np.mean(times_array)
             std_time = np.std(times_array)
             last_time = times_array[-1]
-            generated_code = self.profiling_data["generated_code"]
-            argument_size = self.profiling_data["argument_size"]
-            output_size = self.profiling_data["output_size"]
-            temp_size = self.profiling_data["temp_size"]
+            generated_code = self.profiling_data['generated_code']
+            argument_size = self.profiling_data['argument_size']
+            output_size = self.profiling_data['output_size']
+            temp_size = self.profiling_data['temp_size']
 
             csv_line = (
-                f"{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},"
-                f"{self.jit_time:.4f},{min_time:.4f},{max_time:.4f},{mean_time:.4f},{std_time:.4f},{last_time:.4f},"
-                f"{generated_code},{argument_size},{output_size},{temp_size}\n"
+                f'{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},'
+                f'{self.jit_time:.4f},{min_time:.4f},{max_time:.4f},{mean_time:.4f},{std_time:.4f},{last_time:.4f},'
+                f'{generated_code},{argument_size},{output_size},{temp_size}\n'
             )
 
-            with open(csv_filename, "a") as f:
+            with open(csv_filename, 'a') as f:
                 f.write(csv_line)
 
             param_dict = {
-                "Function": function,
-                "Precision": precision,
-                "X": x,
-                "Y": y,
-                "Z": z,
-                "PX": px,
-                "PY": py,
-                "Backend": backend,
-                "Nodes": nodes,
+                'Function': function,
+                'Precision': precision,
+                'X': x,
+                'Y': y,
+                'Z': z,
+                'PX': px,
+                'PY': py,
+                'Backend': backend,
+                'Nodes': nodes,
             }
             param_dict.update(extra_info)
             profiling_result = {
-                "JIT Time": self.jit_time,
-                "Min Time": min_time,
-                "Max Time": max_time,
-                "Mean Time": mean_time,
-                "Std Time": std_time,
-                "Last Time": last_time,
-                "Generated Code": self._normalize_memory_units(generated_code),
-                "Argument Size": self._normalize_memory_units(argument_size),
-                "Output Size": self._normalize_memory_units(output_size),
-                "Temporary Size": self._normalize_memory_units(temp_size),
+                'JIT Time': self.jit_time,
+                'Min Time': min_time,
+                'Max Time': max_time,
+                'Mean Time': mean_time,
+                'Std Time': std_time,
+                'Last Time': last_time,
+                'Generated Code': self._normalize_memory_units(generated_code),
+                'Argument Size': self._normalize_memory_units(argument_size),
+                'Output Size': self._normalize_memory_units(output_size),
+                'Temporary Size': self._normalize_memory_units(temp_size),
             }
             iteration_runs = {}
             for i in range(len(times_array)):
-                iteration_runs[f"Run {i}"] = times_array[i]
+                iteration_runs[f'Run {i}'] = times_array[i]
 
-            with open(md_filename, "w") as f:
-                f.write(f"# Reporting for {function}\n")
-                f.write("## Parameters\n")
+            with open(md_filename, 'w') as f:
+                f.write(f'# Reporting for {function}\n')
+                f.write('## Parameters\n')
                 f.write(
                     tabulate(
                         param_dict.items(),
-                        headers=["Parameter", "Value"],
-                        tablefmt="github",
+                        headers=['Parameter', 'Value'],
+                        tablefmt='github',
                     )
                 )
-                f.write("\n---\n")
-                f.write("## Profiling Data\n")
+                f.write('\n---\n')
+                f.write('## Profiling Data\n')
                 f.write(
                     tabulate(
                         profiling_result.items(),
-                        headers=["Parameter", "Value"],
-                        tablefmt="github",
+                        headers=['Parameter', 'Value'],
+                        tablefmt='github',
                     )
                 )
-                f.write("\n---\n")
-                f.write("## Iteration Runs\n")
+                f.write('\n---\n')
+                f.write('## Iteration Runs\n')
                 f.write(
                     tabulate(
                         iteration_runs.items(),
-                        headers=["Iteration", "Time"],
-                        tablefmt="github",
+                        headers=['Iteration', 'Time'],
+                        tablefmt='github',
                     )
                 )
                 if self.jax_fn and self.compile_info:
-                    f.write("\n---\n")
-                    f.write("## Compiled Code\n")
-                    f.write("```hlo\n")
-                    f.write(self.compiled_code["COMPILED"])
-                    f.write("\n```\n")
-                    f.write("\n---\n")
-                    f.write("## Lowered Code\n")
-                    f.write("```hlo\n")
-                    f.write(self.compiled_code["LOWERED"])
-                    f.write("\n```\n")
-                    f.write("\n---\n")
+                    f.write('\n---\n')
+                    f.write('## Compiled Code\n')
+                    f.write('```hlo\n')
+                    f.write(self.compiled_code['COMPILED'])
+                    f.write('\n```\n')
+                    f.write('\n---\n')
+                    f.write('## Lowered Code\n')
+                    f.write('```hlo\n')
+                    f.write(self.compiled_code['LOWERED'])
+                    f.write('\n```\n')
+                    f.write('\n---\n')
                     if self.save_jaxpr:
-                        f.write("## JAXPR\n")
-                        f.write("```haskel\n")
-                        f.write(self.compiled_code["JAXPR"])
-                        f.write("\n```\n")
+                        f.write('## JAXPR\n')
+                        f.write('```haskel\n')
+                        f.write(self.compiled_code['JAXPR'])
+                        f.write('\n```\n')
 
         # Reset the timer
         self.jit_time = 0.0
