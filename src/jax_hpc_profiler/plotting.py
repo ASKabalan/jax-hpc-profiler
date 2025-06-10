@@ -4,23 +4,22 @@ from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.patches import FancyBboxPatch
 
-from .utils import clean_up_csv, inspect_df, plot_with_pdims_strategy
+from .utils import clean_up_csv, plot_with_pdims_strategy
 
-np.seterr(divide="ignore")
+np.seterr(divide='ignore')
 
 
 def configure_axes(
     ax: Axes,
     x_values: List[int],
     y_values: List[float],
-    title: str,
+    title: Optional[str],
     xlabel: str,
     plotting_memory: bool = False,
-    memory_units: str = "bytes",
+    memory_units: str = 'bytes',
 ):
     """
     Configure the axes for the plot.
@@ -36,33 +35,32 @@ def configure_axes(
     xlabel : str
         The label for the x-axis.
     """
-    ylabel = ("Time (milliseconds)"
-              if not plotting_memory else f"Memory ({memory_units})")
-    f2 = lambda x: np.log2(x)
-    g2 = lambda x: 2**x
+    ylabel = 'Time (milliseconds)' if not plotting_memory else f'Memory ({memory_units})'
+
+    def f2(x):
+        return np.log2(x)
+
+    def g2(x):
+        return 2**x
+
     ax.set_xlim([min(x_values), max(x_values)])
     y_min, y_max = min(y_values) * 0.6, max(y_values) * 1.1
     ax.set_title(title)
     ax.set_ylim([y_min, y_max])
-    ax.set_xscale("function", functions=(f2, g2))
+    ax.set_xscale('function', functions=(f2, g2))
     if not plotting_memory:
-        ax.set_yscale("symlog")
+        ax.set_yscale('symlog')
         time_ticks = [
-            10**t for t in range(int(np.floor(np.log10(y_min))), 1 +
-                                 int(np.ceil(np.log10(y_max))))
+            10**t for t in range(int(np.floor(np.log10(y_min))), 1 + int(np.ceil(np.log10(y_max))))
         ]
         ax.set_yticks(time_ticks)
     ax.set_xticks(x_values)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     for x_value in x_values:
-        ax.axvline(x=x_value, color="gray", linestyle="--", alpha=0.5)
+        ax.axvline(x=x_value, color='gray', linestyle='--', alpha=0.5)
     ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.05),
-        ncol=4,
-        fontsize="x-large",
-        prop={"size": 14},
+        loc='best',
     )
 
 
@@ -80,10 +78,10 @@ def plot_scaling(
     backends: Optional[List[str]] = None,
     precisions: Optional[List[str]] = None,
     functions: Optional[List[str]] = None,
-    plot_columns: List[str] = ["mean_time"],
-    memory_units: str = "bytes",
-    label_text: str = "plot",
-    pdims_strategy: List[str] = ["plot_fastest"],
+    plot_columns: List[str] = ['mean_time'],
+    memory_units: str = 'bytes',
+    label_text: str = 'plot',
+    pdims_strategy: List[str] = ['plot_fastest'],
 ):
     """
     General scaling plot function based on the number of GPUs or data size.
@@ -115,7 +113,7 @@ def plot_scaling(
     """
 
     if dark_bg:
-        plt.style.use("dark_background")
+        plt.style.use('dark_background')
 
     num_subplots = len(fixed_sizes)
     num_rows = int(np.ceil(np.sqrt(num_subplots)))
@@ -133,28 +131,26 @@ def plot_scaling(
         x_values = []
         y_values = []
         for method, df in dataframes.items():
-
             filtered_method_df = df[df[fixed_column] == int(fixed_size)]
             if filtered_method_df.empty:
                 continue
-            filtered_method_df = filtered_method_df.sort_values(
-                by=[size_column])
-            functions = (pd.unique(filtered_method_df["function"])
-                         if functions is None else functions)
-            precisions = (pd.unique(filtered_method_df["precision"])
-                          if precisions is None else precisions)
-            backends = (pd.unique(filtered_method_df["backend"])
-                        if backends is None else backends)
+            filtered_method_df = filtered_method_df.sort_values(by=[size_column])
+            functions = (
+                pd.unique(filtered_method_df['function']) if functions is None else functions
+            )
+            precisions = (
+                pd.unique(filtered_method_df['precision']) if precisions is None else precisions
+            )
+            backends = pd.unique(filtered_method_df['backend']) if backends is None else backends
 
-            combinations = product(backends, precisions, functions,
-                                   plot_columns)
+            combinations = product(backends, precisions, functions, plot_columns)
 
             for backend, precision, function, plot_column in combinations:
-
                 filtered_params_df = filtered_method_df[
-                    (filtered_method_df["backend"] == backend)
-                    & (filtered_method_df["precision"] == precision)
-                    & (filtered_method_df["function"] == function)]
+                    (filtered_method_df['backend'] == backend)
+                    & (filtered_method_df['precision'] == precision)
+                    & (filtered_method_df['function'] == function)
+                ]
                 if filtered_params_df.empty:
                     continue
                 x_vals, y_vals = plot_with_pdims_strategy(
@@ -172,12 +168,13 @@ def plot_scaling(
                 y_values.extend(y_vals)
 
         if len(x_values) != 0:
-            plotting_memory = "time" not in plot_columns[0].lower()
+            plotting_memory = 'time' not in plot_columns[0].lower()
+            figure_title = f'{title} {fixed_size}' if title is not None else None
             configure_axes(
                 ax,
                 x_values,
                 y_values,
-                f"{title} {fixed_size}",
+                figure_title,
                 xlabel,
                 plotting_memory,
                 memory_units,
@@ -187,17 +184,12 @@ def plot_scaling(
         fig.delaxes(axs[i])
 
     fig.tight_layout()
-    rect = FancyBboxPatch((0.1, 0.1),
-                          0.8,
-                          0.8,
-                          boxstyle="round,pad=0.02",
-                          ec="black",
-                          fc="none")
+    rect = FancyBboxPatch((0.1, 0.1), 0.8, 0.8, boxstyle='round,pad=0.02', ec='black', fc='none')
     fig.patches.append(rect)
     if output is None:
         plt.show()
     else:
-        plt.savefig(output, bbox_inches="tight", transparent=True)
+        plt.savefig(output)
 
 
 def plot_strong_scaling(
@@ -207,14 +199,14 @@ def plot_strong_scaling(
     functions: Optional[List[str]] = None,
     precisions: Optional[List[str]] = None,
     pdims: Optional[List[str]] = None,
-    pdims_strategy: List[str] = ["plot_fastest"],
+    pdims_strategy: List[str] = ['plot_fastest'],
     print_decompositions: bool = False,
     backends: Optional[List[str]] = None,
-    plot_columns: List[str] = ["mean_time"],
-    memory_units: str = "bytes",
-    label_text: str = "%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
-    xlabel: str = "Number of GPUs",
-    title: str = "Data sizes",
+    plot_columns: List[str] = ['mean_time'],
+    memory_units: str = 'bytes',
+    label_text: str = '%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
+    xlabel: str = 'Number of GPUs',
+    title: str = 'Data sizes',
     figure_size: tuple = (6, 4),
     dark_bg: bool = False,
     output: Optional[str] = None,
@@ -235,14 +227,14 @@ def plot_strong_scaling(
         memory_units,
     )
     if len(dataframes) == 0:
-        print(f"No dataframes found for the given arguments. Exiting...")
+        print('No dataframes found for the given arguments. Exiting...')
         return
 
     plot_scaling(
         dataframes,
         available_data_sizes,
-        "gpus",
-        "x",
+        'gpus',
+        'x',
         xlabel,
         title,
         figure_size,
@@ -266,14 +258,14 @@ def plot_weak_scaling(
     functions: Optional[List[str]] = None,
     precisions: Optional[List[str]] = None,
     pdims: Optional[List[str]] = None,
-    pdims_strategy: List[str] = ["plot_fastest"],
+    pdims_strategy: List[str] = ['plot_fastest'],
     print_decompositions: bool = False,
     backends: Optional[List[str]] = None,
-    plot_columns: List[str] = ["mean_time"],
-    memory_units: str = "bytes",
-    label_text: str = "%m%-%f%-%pn%-%pr%-%b%-%p%-%n%",
-    xlabel: str = "Data sizes",
-    title: str = "Number of GPUs",
+    plot_columns: List[str] = ['mean_time'],
+    memory_units: str = 'bytes',
+    label_text: str = '%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
+    xlabel: str = 'Data sizes',
+    title: str = 'Number of GPUs',
     figure_size: tuple = (6, 4),
     dark_bg: bool = False,
     output: Optional[str] = None,
@@ -293,14 +285,14 @@ def plot_weak_scaling(
         memory_units,
     )
     if len(dataframes) == 0:
-        print(f"No dataframes found for the given arguments. Exiting...")
+        print('No dataframes found for the given arguments. Exiting...')
         return
 
     plot_scaling(
         dataframes,
         available_gpu_counts,
-        "x",
-        "gpus",
+        'x',
+        'gpus',
         xlabel,
         title,
         figure_size,
