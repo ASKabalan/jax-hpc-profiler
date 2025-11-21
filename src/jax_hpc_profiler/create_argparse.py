@@ -135,9 +135,24 @@ def create_argparser():
     plot_parser.add_argument(
         '-sc',
         '--scaling',
-        choices=['Weak', 'Strong', 'w', 's'],
+        choices=['Weak', 'Strong', 'WeakFixed', 'w', 's', 'wf'],
         required=True,
-        help='Scaling type (Weak or Strong)',
+        help='Scaling type (Strong, Weak, or WeakFixed)',
+    )
+
+    # Weak-scaling specific options
+    plot_parser.add_argument(
+        '--weak_ideal_line',
+        action='store_true',
+        help='Overlay an ideal flat line for weak scaling (Weak mode only)',
+    )
+    plot_parser.add_argument(
+        '--weak_reverse_axes',
+        action='store_true',
+        help=(
+            'Weak mode only: put data size on the x-axis and annotate each point with GPUs instead '
+            'of data size. Requires --gpus and --data_size with equal lengths.'
+        ),
     )
 
     # Label customization argument
@@ -195,5 +210,9 @@ def create_argparser():
             args.plot_columns = args.plot_memory
         else:
             raise ValueError('Either plot_times or plot_memory should be provided')
+
+        # Note: for Weak scaling, plot_weak_scaling enforces that both gpus and
+        # data_size are provided and have matching lengths. For Strong and
+        # WeakFixed, gpus/data_size remain optional as before.
 
     return args
