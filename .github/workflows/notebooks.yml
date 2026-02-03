@@ -28,6 +28,7 @@ jobs:
         mkdir -p executed_notebooks
         find examples -name "*.ipynb" -print0 | xargs -0 -I {} jupyter nbconvert --to notebook --execute {} --output-dir executed_notebooks
 
+
     - name: Upload executed notebooks
       if: always()
       uses: actions/upload-artifact@v4
