@@ -280,7 +280,8 @@ def plot_weak_scaling(
     representing explicit weak-scaling pairs (gpus[i], data_size[i]).
 
     reverse_axes:
-        - False (default): x-axis is GPUs, y-axis is time; points are annotated with ``N=<data_size>``.
+        - False (default): x-axis is GPUs, y-axis is time; points are annotated with
+        ``N=<data_size>``.
         - True: x-axis is data size, y-axis is time; points are annotated with ``GPUs=<gpu_count>``.
     """
     if fixed_gpu_size is None or fixed_data_size is None:
