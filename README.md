@@ -3,6 +3,7 @@
 [![Build](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/python-publish.yml/badge.svg)](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/python-publish.yml)
 [![Code Formatting](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/formatting.yml/badge.svg)](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/formatting.yml)
 [![Tests](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/tests.yml/badge.svg)](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/tests.yml)
+[![Notebooks](https://img.shields.io/github/actions/workflow/status/ASKabalan/jax-hpc-profiler/notebooks.yml?logo=jupyter&label=notebooks)](https://github.com/ASKabalan/jax-hpc-profiler/actions/workflows/notebooks.yml)
 [![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 JAX HPC Profiler is a tool designed for benchmarking and visualizing performance data in high-performance computing (HPC) environments. It provides functionalities to generate, concatenate, and plot CSV data from various runs.
