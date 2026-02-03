@@ -25,8 +25,13 @@ class Timer:
     ):
         self.jit_time = 0.0
         self.times = []
-        self.profiling_data = {}
-        self.compiled_code = {}
+        self.profiling_data = {
+            'generated_code': 'N/A',
+            'argument_size': 'N/A',
+            'output_size': 'N/A',
+            'temp_size': 'N/A',
+        }
+        self.compiled_code = {'JAXPR': 'N/A', 'LOWERED': 'N/A', 'COMPILED': 'N/A'}
         self.save_jaxpr = save_jaxpr
         self.compile_info = compile_info
         self.jax_fn = jax_fn
