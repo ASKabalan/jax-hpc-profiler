@@ -46,6 +46,12 @@ classifiers = [
 
 urls = { "Homepage" = "https://github.com/ASKabalan/jax-hpc-profiler" }
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+
 [project.scripts]
 jhp = "jax_hpc_profiler.main:main"
 
@@ -76,3 +82,8 @@ ignore = [
 
 [tool.ruff.format]
 quote-style = 'single'
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=term-missing"
+testpaths = ["tests"]
+python_files = "test_*.py"
