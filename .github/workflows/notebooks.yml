@@ -23,10 +23,14 @@ jobs:
         pip install .
         pip install nbconvert ipykernel
 
-    - name: Run profiling notebook
+    - name: Execute notebooks
       run: |
-        jupyter nbconvert --to notebook --execute examples/profiling.ipynb
+        mkdir -p executed_notebooks
+        find examples -name "*.ipynb" -print0 | xargs -0 -I {} jupyter nbconvert --to notebook --execute {} --output-dir executed_notebooks
 
-    - name: Run distributed profiling notebook
-      run: |
-        jupyter nbconvert --to notebook --execute examples/distributed_profiling.ipynb
+    - name: Upload executed notebooks
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: executed-notebooks
+        path: executed_notebooks/*.ipynb
