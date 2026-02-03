@@ -17,6 +17,7 @@ dependencies = [
     "tabulate",
     "adjustText",
     "jax>=0.4.0",
+    "jaxtyping",
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
