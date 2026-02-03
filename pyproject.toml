@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jax_hpc_profiler"
-version = "0.2.13"
-description = "HPC Plotter and profiler for benchmarking data made for JAX"
+version = "0.3.0"
+description = "A comprehensive benchmarking and profiling tool designed for JAX in HPC environments, offering automated instrumentation, strong/weak scaling analysis, and performance visualization."
 authors = [
     { name="Wassim Kabalan" }
 ]
@@ -22,7 +22,7 @@ dependencies = [
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.8"
-keywords = ["jax", "hpc", "profiler", "plotter", "benchmarking"]
+keywords = ["jax", "hpc", "profiling", "benchmarking", "visualization", "scaling", "performance-analysis", "gpu", "distributed-computing"]
 
 # For a list of valid classifiers, see https://pypi.org/classifiers/
 classifiers = [
