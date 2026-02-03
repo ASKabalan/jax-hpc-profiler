@@ -6,8 +6,7 @@ from typing import Any, Callable, Optional, Tuple
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax import make_jaxpr
-from jax.experimental.shard_map import shard_map
+from jax import make_jaxpr, shard_map
 from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
 from jaxtyping import Array
