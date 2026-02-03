@@ -185,10 +185,10 @@ class Timer:
             mean_time = np.mean(times_array)
             std_time = np.std(times_array)
             last_time = times_array[-1]
-            generated_code = self.profiling_data['generated_code']
-            argument_size = self.profiling_data['argument_size']
-            output_size = self.profiling_data['output_size']
-            temp_size = self.profiling_data['temp_size']
+            generated_code = self.profiling_data.get('generated_code', 'N/A')
+            argument_size = self.profiling_data.get('argument_size', 'N/A')
+            output_size = self.profiling_data.get('output_size', 'N/A')
+            temp_size = self.profiling_data.get('temp_size', 'N/A')
 
             csv_line = (
                 f'{function},{precision},{x},{y},{z},{px},{py},{backend},{nodes},'
