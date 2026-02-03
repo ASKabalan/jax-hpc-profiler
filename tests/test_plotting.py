@@ -23,7 +23,8 @@ def mock_plt():
 def sample_csv(tmp_path):
     csv_file = tmp_path / 'test_data.csv'
     # Create data matching Timer.report format (19 columns)
-    # function,precision,x,y,z,px,py,backend,nodes,jit,min,max,mean,std,last,gen_code,arg_size,out_size,tmp_size
+    # function,precision,x,y,z,px,py,backend,nodes,jit,min,max,mean,std,last,gen_code,arg_size,
+    # out_size,tmp_size
     data = [
         'fun1,float32,100,100,100,1,1,NCCL,1,0.1,1.0,1.2,1.1,0.01,1.1,1000,1000,1000,1000',
         'fun1,float32,200,200,200,1,1,NCCL,1,0.2,2.0,2.4,2.2,0.02,2.2,2000,2000,2000,2000',
