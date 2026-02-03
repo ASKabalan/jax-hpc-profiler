@@ -181,8 +181,28 @@ jax-hpc-profiler plot -f <csv_files> [options]
 - `-db, --dark_bg`: Use dark background for plotting.
 - `-pd, --print_decompositions`: Print decompositions on plot (experimental).
 - `-b, --backends`: List of backends to include. This argument can be multiple ones.
-- `-sc, --scaling`: Scaling type (`Weak`, `Strong`).
+- `-sc, --scaling`: Scaling type (`Strong`, `Weak`, `WeakFixed`).
+  - `Strong`: strong scaling with fixed global problem size(s), plotting runtime (or memory) versus number of GPUs.
+  - `Weak`: true weak scaling with explicit `(gpus, data_size)` sequences; requires that `-g/--gpus` and `-d/--data_size` are both provided and have the same length, and plots runtime (or memory) versus number of GPUs on a single figure.
+  - `WeakFixed`: size scaling at fixed GPU count (previous weak behavior); plots runtime (or memory) versus data size, grouped by number of GPUs.
+- `--weak_ideal_line`: When using `-sc Weak`, overlay an ideal flat line based on the smallest-GPU runtime for the first plotted weak-scaling curve.
 - `-l, --label_text`: Custom label for the plot. You can use placeholders: `%decomposition%` (or `%p%`), `%precision%` (or `%pr%`), `%plot_name%` (or `%pn%`), `%backend%` (or `%b%`), `%node%` (or `%n%`), `%methodname%` (or `%m%`).
+
+### Weak scaling CLI example
+
+For a weak-scaling run where work per GPU is kept approximately constant, you might provide matching GPU and data-size sequences, for example:
+
+```bash
+jax-hpc-profiler plot \
+  -f MYDATA.csv \
+  -pt mean_time \
+  -sc Weak \
+  -g 1 2 4 8 \
+  -d 32 64 128 256 \
+  --weak_ideal_line
+```
+
+This will produce a single weak-scaling plot of runtime versus number of GPUs, using the points `(gpus, data_size) = (1, 32), (2, 64), (4, 128), (8, 256)` and overlay an ideal weak-scaling reference line.
 
 ## Examples
 
