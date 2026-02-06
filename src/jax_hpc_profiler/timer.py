@@ -128,7 +128,7 @@ class Timer:
             data_callback=lambda _: jnp.expand_dims(times_array, axis=0),
         )
 
-        @partial(shard_map, mesh=mesh, in_specs=P('x'), out_specs=P(), check_rep=False)
+        @partial(shard_map, mesh=mesh, in_specs=P('x'), out_specs=P())
         def get_mean_times(times) -> Array:
             return jax.lax.pmean(times, axis_name='x')
 
