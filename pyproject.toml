@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jax_hpc_profiler"
-version = "0.3.0"
+version = "0.3.1"
 description = "A comprehensive benchmarking and profiling tool designed for JAX in HPC environments, offering automated instrumentation, strong/weak scaling analysis, and performance visualization."
 authors = [
     { name="Wassim Kabalan" }
