@@ -1,6 +1,5 @@
-import pytest
-
 import pandas as pd
+import pytest
 
 from jax_hpc_profiler.utils import (
     _parse_volume_query,

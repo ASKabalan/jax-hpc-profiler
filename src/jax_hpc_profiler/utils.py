@@ -263,7 +263,7 @@ def _parse_volume_query(query: str) -> tuple[str, int]:
     """
     for prefix, col in [('global_', 'global_vol'), ('local_', 'local_vol')]:
         if query.startswith(prefix):
-            value_part = query[len(prefix):]
+            value_part = query[len(prefix) :]
             if 'x' in value_part:
                 vol = 1
                 for dim in value_part.split('x'):
@@ -523,9 +523,10 @@ def clean_up_csv(
             dataframes[file_name] = pd.concat([dataframes[file_name], df])
 
     print(f'requested GPUS: {gpus} available GPUS: {available_gpu_counts}')
-    print(
-        f'requested data sizes: {data_size_queries} available global volumes: {available_global_vols}'
-    )
+    print(f"""
+        requested data sizes: {data_size_queries}
+        available global volumes: {available_global_vols}
+        """)
 
     available_gpu_counts = (
         available_gpu_counts
@@ -606,9 +607,7 @@ def probe_csv_metadata(csv_files: List[str]) -> str:
         vol_str = _format_volume(gv)
         gpus_str = ', '.join(str(g) for g in gpus_avail)
 
-        lines.append(
-            f'{alias:<24} {vol_str:<16} {dash:<16} {gpus_str:<20} {shape_strs:<20}'
-        )
+        lines.append(f'{alias:<24} {vol_str:<16} {dash:<16} {gpus_str:<20} {shape_strs:<20}')
 
     # Local volumes
     for lv in sorted(df['local_vol'].unique()):
@@ -621,8 +620,6 @@ def probe_csv_metadata(csv_files: List[str]) -> str:
         vol_str = _format_volume(lv)
         gpus_str = ', '.join(str(g) for g in gpus_avail)
 
-        lines.append(
-            f'{alias:<24} {dash:<16} {vol_str:<16} {gpus_str:<20} {shape_strs:<20}'
-        )
+        lines.append(f'{alias:<24} {dash:<16} {vol_str:<16} {gpus_str:<20} {shape_strs:<20}')
 
     return '\n'.join(lines)

@@ -265,12 +265,7 @@ def plot_scaling(
 
                 # Draw ideal line once per subplot, anchored at first curve
                 # Only meaningful when x-axis is GPUs
-                if (
-                    ideal_line
-                    and not ideal_line_plotted
-                    and len(x_vals) > 0
-                    and x_column == 'gpus'
-                ):
+                if ideal_line and not ideal_line_plotted and len(x_vals) > 0 and x_column == 'gpus':
                     x_arr = np.asarray(x_vals).reshape(-1)
                     y_arr = np.asarray(y_vals).reshape(-1)
                     baseline_idx = np.argmin(x_arr)
@@ -303,9 +298,7 @@ def plot_scaling(
             tick_labels = None
             rotate = False
             if x_column in ('global_vol', 'local_vol'):
-                tick_labels, has_non_cube = _build_volume_labels(
-                    dataframes, x_column, x_values
-                )
+                tick_labels, has_non_cube = _build_volume_labels(dataframes, x_column, x_values)
                 rotate = has_non_cube
 
             configure_axes(
