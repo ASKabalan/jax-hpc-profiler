@@ -141,7 +141,7 @@ The `plot` function expects the directory to be organized as described above, bu
 ### Example Usage
 
 ```bash
-jax-hpc-profiler concat /path/to/root_directory /path/to/output
+jhp concat /path/to/root_directory /path/to/output
 ```
 
 And the output will be:
@@ -158,6 +158,16 @@ out_directory/
     └── method_3.csv
 ```
 
+## Inspecting CSV Metadata
+
+You can inspect available metadata in your CSV files using the `probe` command:
+
+```bash
+jhp probe -f <csv_files>
+```
+
+This prints the available data sizes, GPU counts, functions, backends, precisions, and other metadata found in the CSV files. Use this to understand what filters to apply before plotting.
+
 ## Plotting CSV Data
 
 You can plot the performance data using the `plot` command. The plotting command provides various options to customize the plots.
@@ -165,61 +175,53 @@ You can plot the performance data using the `plot` command. The plotting command
 ### Usage
 
 ```bash
-jax-hpc-profiler plot -f <csv_files> [options]
+jhp plot -f <csv_files> [options]
 ```
 
 ### Options
 
 - `-f, --csv_files`: List of CSV files to plot (required).
-- `-g, --gpus`: List of number of GPUs to plot.
-- `-d, --data_size`: List of data sizes to plot.
+- `-sc, --scaling`: Axis mode (required):
+  - `data` (or `d`): subplots per data size, x-axis = GPUs (strong scaling view).
+  - `GPUs` (or `g`): subplots per GPU count, x-axis = data size.
+- `-g, --gpus`: List of GPU counts to filter.
+- `-d, --data_size`: Data size queries. Examples: `global_2097152`, `global_128x128x128`, `local_2097152`, `local_128x128x128`. Bare integers are auto-translated to `global_NxNxN` (cubed).
 - `-fd, --filter_pdims`: List of pdims to filter (e.g., 1x4 2x2 4x8).
-- `-ps, --pdim_strategy`: Strategy for plotting pdims. This argument can be multiple ones (`plot_all`, `plot_fastest`, `slab_yz`, `slab_xy`, `pencils`).
-  - `plot_all`: Plot every decomposition.
-  - `plot_fastest`: Plot the fastest decomposition.
-- `-pr, --precision`: Precision to filter by. This argument can be multiple ones (`float32`, `float64`).
-- `-fn, --function_name`: Function names to filter. This argument can be multiple ones.
+- `-ps, --pdim_strategy`: Strategy for plotting pdims (`plot_all`, `plot_fastest`, `slab_yz`, `slab_xy`, `pencils`).
+- `-pr, --precision`: Precision to filter by (`float32`, `float64`).
+- `-fn, --function_name`: Function names to filter.
 - `-pt, --plot_times`: Time columns to plot (`jit_time`, `min_time`, `max_time`, `mean_time`, `std_time`, `last_time`). Note: You cannot plot memory and time together.
 - `-pm, --plot_memory`: Memory columns to plot (`generated_code`, `argument_size`, `output_size`, `temp_size`). Note: You cannot plot memory and time together.
 - `-mu, --memory_units`: Memory units to plot (`KB`, `MB`, `GB`, `TB`).
 - `-fs, --figure_size`: Figure size.
 - `-o, --output`: Output file (if none then only show plot).
-- `-db, --dark_bg`: Use dark background for plotting.
 - `-pd, --print_decompositions`: Print decompositions on plot (experimental).
-- `-b, --backends`: List of backends to include. This argument can be multiple ones.
-- `-sc, --scaling`: Scaling type (`Strong`, `Weak`, `WeakFixed`).
-  - `Strong`: strong scaling with fixed global problem size(s), plotting runtime (or memory) versus number of GPUs.
-  - `Weak`: true weak scaling with explicit `(gpus, data_size)` sequences; requires that `-g/--gpus` and `-d/--data_size` are both provided and have the same length, and plots runtime (or memory) versus number of GPUs on a single figure.
-  - `WeakFixed`: size scaling at fixed GPU count (previous weak behavior); plots runtime (or memory) versus data size, grouped by number of GPUs.
-- `--weak_ideal_line`: When using `-sc Weak`, overlay an ideal flat line based on the smallest-GPU runtime for the first plotted weak-scaling curve.
-- `-l, --label_text`: Custom label for the plot. You can use placeholders: `%decomposition%` (or `%p%`), `%precision%` (or `%pr%`), `%plot_name%` (or `%pn%`), `%backend%` (or `%b%`), `%node%` (or `%n%`), `%methodname%` (or `%m%`).
+- `-b, --backends`: List of backends to include.
+- `--ideal_line`: Overlay an ideal scaling reference line (1/N for global data sizes, flat for local data sizes).
+- `-xs, --xscale`: X-axis scale (`linear`, `symlog`, `log2`, `log10`).
+- `-xl, --xlabel`: Custom x-axis label.
+- `-tl, --title`: Custom plot title.
+- `-l, --label_text`: Custom label for the plot. You can use placeholders: `%decomposition%` (or `%p%`), `%precision%` (or `%pr%`), `%plot_name%` (or `%pn%`), `%backend%` (or `%b%`), `%node%` (or `%n%`), `%methodname%` (or `%m%`), `%function%` (or `%f%`).
 
-### Weak scaling CLI example
+### CLI examples
 
-For a weak-scaling run where work per GPU is kept approximately constant, you might provide matching GPU and data-size sequences, for example:
+**Strong scaling** (subplots per data size, x-axis = GPUs):
 
 ```bash
-jax-hpc-profiler plot \
-  -f MYDATA.csv \
-  -pt mean_time \
-  -sc Weak \
-  -g 1 2 4 8 \
-  -d 32 64 128 256 \
-  --weak_ideal_line
+jhp plot -f DATA.csv -sc data -d 128 256 512 -pt mean_time --ideal_line
 ```
 
-This will produce a single weak-scaling plot of runtime versus number of GPUs, using the points `(gpus, data_size) = (1, 32), (2, 64), (4, 128), (8, 256)` and overlay an ideal weak-scaling reference line.
+**Size scaling** (subplots per GPU count, x-axis = data size):
+
+```bash
+jhp plot -f DATA.csv -sc GPUs -pt mean_time
+```
 
 ## Examples
 
-The repository includes examples for both profiling and plotting.
+The repository includes Jupyter notebook examples:
 
-### Profiling Example
+- **`examples/profiling.ipynb`**: Single-device profiling of JAX and NumPy functions with `Timer`, CSV report generation, and plotting with `plot_by_gpus`.
+- **`examples/distributed_profiling.ipynb`**: Multi-device profiling with sharded arrays, `plot_by_gpus`, `plot_by_data_size`, `probe_csv_metadata`, and CLI usage.
 
-See the `examples/profiling` directory for profiling examples, including `function.py`, `test.csv`, and the generated markdown report.
-
-### Plotting Example
-
-See the `examples/plotting` directory for plotting examples, including `generator.py`, `sample_data1.csv`, `sample_data2.csv`, and `sample_data3.csv`.
-
-a multi GPU example comparing distributed FFT can be found here [jaxdecomp-bechmarks](https://github.com/ASKabalan/jaxdecomp-benchmarks)
+A multi-GPU example comparing distributed FFT can be found here: [jaxdecomp-benchmarks](https://github.com/ASKabalan/jaxdecomp-benchmarks)
