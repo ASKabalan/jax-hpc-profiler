@@ -4,13 +4,60 @@ from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from adjustText import adjust_text
 from matplotlib.axes import Axes
 from matplotlib.patches import FancyBboxPatch
 
-from .utils import clean_up_csv, plot_with_pdims_strategy
+from .utils import _query_volume_type, clean_up_csv, plot_with_pdims_strategy
 
 np.seterr(divide='ignore')
+
+
+def _format_volume_title(vol: int) -> str:
+    """Format a volume as N³ if it is a perfect cube, otherwise as the raw number."""
+    cbrt = round(vol ** (1.0 / 3.0))
+    if cbrt**3 == vol:
+        return f'{cbrt}\u00b3'
+    return f'{vol:,}'
+
+
+def _build_volume_labels(
+    dataframes: Dict[str, pd.DataFrame],
+    vol_column: str,
+    volumes: List[int],
+) -> tuple[dict[int, str], bool]:
+    """Build tick labels for volume x-axis values.
+
+    Returns (labels_dict, has_non_cube) where labels_dict maps volume → label string,
+    and has_non_cube is True if any label is not a simple N³ (needs tick rotation).
+    """
+    labels = {}
+    has_non_cube = False
+    for vol in sorted(set(int(v) for v in volumes)):
+        cbrt = round(vol ** (1.0 / 3.0))
+        if cbrt**3 == vol:
+            labels[vol] = f'{cbrt}\u00b3'
+        elif vol_column == 'global_vol':
+            # Look up first (x, y, z) row for this volume
+            found = False
+            for df in dataframes.values():
+                rows = df[df[vol_column] == vol]
+                if not rows.empty:
+                    row = rows.iloc[0]
+                    x, y, z = int(row['x']), int(row['y']), int(row['z'])
+                    if x == y == z:
+                        labels[vol] = f'{x}\u00b3'
+                    else:
+                        labels[vol] = f'{x}\u00d7{y}\u00d7{z}'
+                        has_non_cube = True
+                    found = True
+                    break
+            if not found:
+                labels[vol] = f'{vol:,}'
+                has_non_cube = True
+        else:
+            labels[vol] = f'{vol:,}'
+            has_non_cube = True
+    return labels, has_non_cube
 
 
 def configure_axes(
@@ -21,6 +68,9 @@ def configure_axes(
     xlabel: str,
     plotting_memory: bool = False,
     memory_units: str = 'bytes',
+    xscale: str = 'linear',
+    x_tick_labels: Optional[dict] = None,
+    rotate_x_ticks: bool = False,
 ):
     """
     Configure the axes for the plot.
@@ -33,29 +83,52 @@ def configure_axes(
         The x-axis values.
     y_values : List[float]
         The y-axis values.
+    title : Optional[str]
+        The title for the subplot.
     xlabel : str
         The label for the x-axis.
+    plotting_memory : bool
+        Whether we are plotting memory instead of time.
+    memory_units : str
+        The memory unit label.
+    xscale : str
+        X-axis scale: 'linear', 'symlog', 'log2', or 'log10'.
+    x_tick_labels : Optional[dict]
+        Mapping from x-value to custom tick label string.
+    rotate_x_ticks : bool
+        Whether to rotate x-axis tick labels by 45 degrees.
     """
     ylabel = 'Time (milliseconds)' if not plotting_memory else f'Memory ({memory_units})'
-
-    def f2(x):
-        return np.log2(x)
-
-    def g2(x):
-        return 2**x
 
     ax.set_xlim([min(x_values), max(x_values)])
     y_min, y_max = min(y_values) * 0.6, max(y_values) * 1.1
     ax.set_title(title)
     ax.set_ylim([y_min, y_max])
-    ax.set_xscale('function', functions=(f2, g2))
     if not plotting_memory:
         ax.set_yscale('symlog')
         time_ticks = [
             10**t for t in range(int(np.floor(np.log10(y_min))), 1 + int(np.ceil(np.log10(y_max))))
         ]
         ax.set_yticks(time_ticks)
+
+    # Apply x-axis scale
+    if xscale == 'log2':
+        ax.set_xscale('function', functions=(np.log2, lambda x: 2**x))
+    elif xscale == 'log10':
+        ax.set_xscale('function', functions=(np.log10, lambda x: 10**x))
+    elif xscale == 'symlog':
+        ax.set_xscale('symlog')
+    # else: linear (default, no call needed)
+
     ax.set_xticks(x_values)
+    if x_tick_labels:
+        ax.set_xticklabels([x_tick_labels.get(int(v), str(v)) for v in x_values])
+    else:
+        ax.get_xaxis().set_major_formatter(plt.ScalarFormatter())
+
+    if rotate_x_ticks:
+        ax.tick_params(axis='x', rotation=45)
+
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     for x_value in x_values:
@@ -67,14 +140,13 @@ def configure_axes(
 
 def plot_scaling(
     dataframes: Dict[str, pd.DataFrame],
-    fixed_sizes: List[int],
-    size_column: str,
-    fixed_column: str,
+    scaling_labels: List,
+    scaling_label_column: str,
+    x_column: str,
     xlabel: str,
     title: str,
     figure_size: tuple = (6, 4),
     output: Optional[str] = None,
-    dark_bg: bool = False,
     print_decompositions: bool = False,
     backends: Optional[List[str]] = None,
     precisions: Optional[List[str]] = None,
@@ -83,40 +155,56 @@ def plot_scaling(
     memory_units: str = 'bytes',
     label_text: str = 'plot',
     pdims_strategy: List[str] = ['plot_fastest'],
+    ideal_line: bool = False,
+    xscale: str = 'linear',
 ):
     """
-    General scaling plot function based on the number of GPUs or data size.
+    General scaling plot function.
 
     Parameters
     ----------
     dataframes : Dict[str, pd.DataFrame]
         Dictionary of method names to dataframes.
-    fixed_sizes : List[int]
-        List of fixed sizes (data or GPUs) to plot.
-    size_column : str
-        Column name for the size axis ('x' for weak scaling, 'gpus' for strong scaling).
-    fixed_column : str
-        Column name for the fixed axis ('gpus' for weak scaling, 'x' for strong scaling).
+    scaling_labels : List
+        List of values to create subplots for.
+    scaling_label_column : str
+        Column name for the subplot axis.
+    x_column : str
+        Column name for the x-axis ('gpus', 'global_vol', or 'local_vol').
     xlabel : str
         Label for the x-axis.
+    title : str
+        Base title for the plot.
     figure_size : tuple, optional
         Size of the figure, by default (6, 4).
     output : Optional[str], optional
         Output file to save the plot, by default None.
-    dark_bg : bool, optional
-        Whether to use dark background for the plot, by default False.
     print_decompositions : bool, optional
         Whether to print decompositions on the plot, by default False.
     backends : Optional[List[str]], optional
         List of backends to include, by default None.
-    pdims_strategy : str, optional
-        Strategy for plotting pdims ('plot_all' or 'plot_fastest'), by default 'plot_fastest'.
+    precisions : Optional[List[str]], optional
+        List of precisions to include, by default None.
+    functions : Optional[List[str]], optional
+        List of functions to include, by default None.
+    plot_columns : List[str], optional
+        Columns to plot, by default ['mean_time'].
+    memory_units : str, optional
+        Memory unit label, by default 'bytes'.
+    label_text : str, optional
+        Template for plot labels, by default 'plot'.
+    pdims_strategy : List[str], optional
+        Strategy for plotting pdims, by default ['plot_fastest'].
+    ideal_line : bool, optional
+        Whether to draw an ideal scaling reference line, by default False.
+        Only drawn when x_column is 'gpus': global_vol → 1/N, local_vol → flat.
+    xscale : str, optional
+        X-axis scale: 'linear', 'symlog', 'log2', or 'log10', by default 'linear'.
     """
-
-    if dark_bg:
-        plt.style.use('dark_background')
-
-    num_subplots = len(fixed_sizes)
+    num_subplots = len(scaling_labels)
+    if num_subplots == 0:
+        print('No volumes to plot. Exiting...')
+        return
     num_rows = int(np.ceil(np.sqrt(num_subplots)))
     num_cols = int(np.ceil(num_subplots / num_rows))
 
@@ -126,25 +214,29 @@ def plot_scaling(
     else:
         axs = [axs]
 
-    for i, fixed_size in enumerate(fixed_sizes):
+    for i, label_value in enumerate(scaling_labels):
         ax: Axes = axs[i]
 
         x_values = []
         y_values = []
+        ideal_line_plotted = False
+
         for method, df in dataframes.items():
-            filtered_method_df = df[df[fixed_column] == int(fixed_size)]
+            filtered_method_df = df[df[scaling_label_column] == int(label_value)]
             if filtered_method_df.empty:
                 continue
-            filtered_method_df = filtered_method_df.sort_values(by=[size_column])
-            functions = (
+            filtered_method_df = filtered_method_df.sort_values(by=[x_column])
+            local_functions = (
                 pd.unique(filtered_method_df['function']) if functions is None else functions
             )
-            precisions = (
+            local_precisions = (
                 pd.unique(filtered_method_df['precision']) if precisions is None else precisions
             )
-            backends = pd.unique(filtered_method_df['backend']) if backends is None else backends
+            local_backends = (
+                pd.unique(filtered_method_df['backend']) if backends is None else backends
+            )
 
-            combinations = product(backends, precisions, functions, plot_columns)
+            combinations = product(local_backends, local_precisions, local_functions, plot_columns)
 
             for backend, precision, function, plot_column in combinations:
                 filtered_params_df = filtered_method_df[
@@ -154,23 +246,61 @@ def plot_scaling(
                 ]
                 if filtered_params_df.empty:
                     continue
-                x_vals, y_vals = plot_with_pdims_strategy(
+                result = plot_with_pdims_strategy(
                     ax,
                     filtered_params_df,
                     method,
                     pdims_strategy,
                     print_decompositions,
-                    size_column,
+                    x_column,
                     plot_column,
                     label_text,
                 )
+                if result is None:
+                    continue
 
+                x_vals, y_vals = result
                 x_values.extend(x_vals)
                 y_values.extend(y_vals)
 
+                # Draw ideal line once per subplot, anchored at first curve
+                # Only meaningful when x-axis is GPUs
+                if ideal_line and not ideal_line_plotted and len(x_vals) > 0 and x_column == 'gpus':
+                    x_arr = np.asarray(x_vals).reshape(-1)
+                    y_arr = np.asarray(y_vals).reshape(-1)
+                    baseline_idx = np.argmin(x_arr)
+                    baseline_gpus = x_arr[baseline_idx]
+                    baseline_y = y_arr[baseline_idx]
+                    sorted_x = sorted(set(x_values))
+
+                    if scaling_label_column == 'global_vol':
+                        # Strong scaling ideal: T(N) = T(N_min) * N_min / N
+                        ideal_y = [baseline_y * baseline_gpus / g for g in sorted_x]
+                        ax.plot(sorted_x, ideal_y, '--', color='gray', label='Ideal scaling')
+                    else:
+                        # Weak scaling ideal: T(N) = T(N_min) (flat)
+                        ax.hlines(
+                            baseline_y,
+                            min(sorted_x),
+                            max(sorted_x),
+                            colors='gray',
+                            linestyles='dashed',
+                            label='Ideal scaling',
+                        )
+                    ideal_line_plotted = True
+
         if len(x_values) != 0:
             plotting_memory = 'time' not in plot_columns[0].lower()
-            figure_title = f'{title} {fixed_size}' if title is not None else None
+            vol_label = _format_volume_title(int(label_value))
+            figure_title = f'{title} {vol_label}' if title is not None else None
+
+            # Build volume tick labels when x-axis is a volume column
+            tick_labels = None
+            rotate = False
+            if x_column in ('global_vol', 'local_vol'):
+                tick_labels, has_non_cube = _build_volume_labels(dataframes, x_column, x_values)
+                rotate = has_non_cube
+
             configure_axes(
                 ax,
                 x_values,
@@ -179,6 +309,9 @@ def plot_scaling(
                 xlabel,
                 plotting_memory,
                 memory_units,
+                xscale,
+                tick_labels,
+                rotate,
             )
 
     for i in range(num_subplots, num_rows * num_cols):
@@ -193,10 +326,10 @@ def plot_scaling(
         plt.savefig(output)
 
 
-def plot_strong_scaling(
+def plot_by_data_size(
     csv_files: List[str],
-    fixed_gpu_size: Optional[List[int]] = None,
-    fixed_data_size: Optional[List[int]] = None,
+    gpus: Optional[List[int]] = None,
+    data_size_queries: Optional[List[str]] = None,
     functions: Optional[List[str]] = None,
     precisions: Optional[List[str]] = None,
     pdims: Optional[List[str]] = None,
@@ -209,100 +342,23 @@ def plot_strong_scaling(
     xlabel: str = 'Number of GPUs',
     title: str = 'Data sizes',
     figure_size: tuple = (6, 4),
-    dark_bg: bool = False,
-    output: Optional[str] = None,
-):
-    """
-    Plot strong scaling based on the number of GPUs.
-    """
-
-    dataframes, _, available_data_sizes = clean_up_csv(
-        csv_files,
-        precisions,
-        functions,
-        fixed_gpu_size,
-        fixed_data_size,
-        pdims,
-        pdims_strategy,
-        backends,
-        memory_units,
-    )
-    if len(dataframes) == 0:
-        print('No dataframes found for the given arguments. Exiting...')
-        return
-
-    plot_scaling(
-        dataframes,
-        available_data_sizes,
-        'gpus',
-        'x',
-        xlabel,
-        title,
-        figure_size,
-        output,
-        dark_bg,
-        print_decompositions,
-        backends,
-        precisions,
-        functions,
-        plot_columns,
-        memory_units,
-        label_text,
-        pdims_strategy,
-    )
-
-
-def plot_weak_scaling(
-    csv_files: List[str],
-    fixed_gpu_size: Optional[List[int]] = None,
-    fixed_data_size: Optional[List[int]] = None,
-    functions: Optional[List[str]] = None,
-    precisions: Optional[List[str]] = None,
-    pdims: Optional[List[str]] = None,
-    pdims_strategy: List[str] = ['plot_fastest'],
-    print_decompositions: bool = False,
-    backends: Optional[List[str]] = None,
-    plot_columns: List[str] = ['mean_time'],
-    memory_units: str = 'bytes',
-    label_text: str = '%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
-    xlabel: str = 'Number of GPUs',
-    title: Optional[str] = None,
-    figure_size: tuple = (6, 4),
-    dark_bg: bool = False,
     output: Optional[str] = None,
     ideal_line: bool = False,
-    reverse_axes: bool = False,
+    xscale: str = 'linear',
 ):
     """
-    Plot true weak scaling: runtime vs GPUs for explicit (gpus, data size) sequences.
+    Plot with subplots per data size query, x-axis = GPUs.
 
-    Both ``fixed_gpu_size`` and ``fixed_data_size`` must be provided and have the same length,
-    representing explicit weak-scaling pairs (gpus[i], data_size[i]).
-
-    reverse_axes:
-        - False (default): x-axis is GPUs, y-axis is time; points are annotated with
-        ``N=<data_size>``.
-        - True: x-axis is data size, y-axis is time; points are annotated with ``GPUs=<gpu_count>``.
+    Auto-detects volume column from queries:
+    - ``global_*`` queries → subplots by ``global_vol``, ideal = 1/N (strong scaling)
+    - ``local_*`` queries → subplots by ``local_vol``, ideal = flat (weak scaling)
     """
-    if fixed_gpu_size is None or fixed_data_size is None:
-        raise ValueError(
-            'Weak scaling requires both fixed_gpu_size (gpus) and fixed_data_size (problem sizes).'
-        )
-    if len(fixed_gpu_size) != len(fixed_data_size):
-        raise ValueError(
-            'Weak scaling requires fixed_gpu_size and fixed_data_size lists of equal length.'
-        )
-
-    gpu_to_data = {int(g): int(d) for g, d in zip(fixed_gpu_size, fixed_data_size)}
-    data_to_gpu = {int(d): int(g) for g, d in zip(fixed_gpu_size, fixed_data_size)}
-    x_col = 'x' if reverse_axes else 'gpus'
-
     dataframes, _, _ = clean_up_csv(
         csv_files,
         precisions,
         functions,
-        fixed_gpu_size,
-        fixed_data_size,
+        gpus,
+        data_size_queries,
         pdims,
         pdims_strategy,
         backends,
@@ -312,139 +368,40 @@ def plot_weak_scaling(
         print('No dataframes found for the given arguments. Exiting...')
         return
 
-    if dark_bg:
-        plt.style.use('dark_background')
-
-    fig, ax = plt.subplots(figsize=figure_size)
-
-    x_values: List[float] = []
-    y_values: List[float] = []
-    annotations: List = []
-    ideal_line_plotted = False
-
-    for method, df in dataframes.items():
-        # Determine parameter sets from the filtered dataframe if not provided
-        local_functions = pd.unique(df['function']) if functions is None else functions
-        local_precisions = pd.unique(df['precision']) if precisions is None else precisions
-        local_backends = pd.unique(df['backend']) if backends is None else backends
-
-        combinations = product(local_backends, local_precisions, local_functions, plot_columns)
-
-        for backend, precision, function, plot_column in combinations:
-            base_df = df[
-                (df['backend'] == backend)
-                & (df['precision'] == precision)
-                & (df['function'] == function)
-            ]
-            if base_df.empty:
-                continue
-
-            # Keep only rows matching any of the (gpus, x) pairs
-            mask = pd.Series(False, index=base_df.index)
-            for g, d in zip(fixed_gpu_size, fixed_data_size):
-                mask |= (base_df['gpus'] == int(g)) & (base_df['x'] == int(d))
-
-            filtered_params_df = base_df[mask]
-            if filtered_params_df.empty:
-                continue
-
-            x_vals, y_vals = plot_with_pdims_strategy(
-                ax,
-                filtered_params_df,
-                method,
-                pdims_strategy,
-                print_decompositions,
-                x_col,
-                plot_column,
-                label_text,
-            )
-            if x_vals is None or len(x_vals) == 0:
-                continue
-
-            x_arr = np.asarray(x_vals).reshape(-1)
-            y_arr = np.asarray(y_vals).reshape(-1)
-
-            # Annotate every point with data size or GPU count depending on axis choice.
-            # Use plain data coordinates for the text; adjust_text will then only move
-            # the labels slightly (mostly vertically) to avoid overlap.
-            for xv, yv in zip(x_arr, y_arr):
-                if reverse_axes:
-                    gpu = data_to_gpu.get(int(xv))
-                    if gpu is None:
-                        continue
-                    label = f'GPUs={gpu}'
-                else:
-                    data_size = gpu_to_data.get(int(xv))
-                    if data_size is None:
-                        continue
-                    label = f'N={data_size}'
-
-                text_obj = ax.text(
-                    float(xv),
-                    float(yv),
-                    label,
-                    ha='center',
-                    va='bottom',
-                    fontsize='small',
-                    clip_on=True,
-                )
-                annotations.append(text_obj)
-
-            x_values.extend(x_arr.tolist())
-            y_values.extend(y_arr.tolist())
-
-            if ideal_line and not ideal_line_plotted:
-                # Use the smallest x value in this curve as baseline
-                baseline_index = np.argmin(x_arr)
-                baseline_y = y_arr[baseline_index]
-                ax.hlines(
-                    baseline_y,
-                    xmin=float(np.min(x_arr)),
-                    xmax=float(np.max(x_arr)),
-                    colors='gray',
-                    linestyles='dashed',
-                    label='Ideal weak scaling',
-                )
-                ideal_line_plotted = True
-                y_values.append(float(baseline_y))
-
-    if x_values:
-        plotting_memory = 'time' not in plot_columns[0].lower()
-        figure_title = title if title is not None else 'Weak scaling'
-        configure_axes(
-            ax,
-            x_values,
-            y_values,
-            figure_title,
-            xlabel,
-            plotting_memory,
-            memory_units,
-        )
-        if annotations:
-            ax.figure.canvas.draw()
-            adjust_text(
-                annotations,
-                ax=ax,
-                # keep points aligned in x, only allow vertical motion
-                only_move={'text': 'y', 'static': 'y'},
-                expand=(1.02, 1.05),
-                force_text=(0.08, 0.2),
-                max_move=(0, 30),
-            )
-
-    fig.tight_layout()
-    rect = FancyBboxPatch((0.1, 0.1), 0.8, 0.8, boxstyle='round,pad=0.02', ec='black', fc='none')
-    fig.patches.append(rect)
-    if output is None:
-        plt.show()
+    # Auto-detect volume column from queries
+    if data_size_queries:
+        vol_col = _query_volume_type(data_size_queries[0])
     else:
-        plt.savefig(output)
+        vol_col = 'global_vol'
+
+    volumes = sorted({v for df in dataframes.values() for v in df[vol_col].unique()})
+
+    plot_scaling(
+        dataframes,
+        volumes,
+        vol_col,
+        'gpus',
+        xlabel,
+        title,
+        figure_size,
+        output,
+        print_decompositions,
+        backends,
+        precisions,
+        functions,
+        plot_columns,
+        memory_units,
+        label_text,
+        pdims_strategy,
+        ideal_line,
+        xscale,
+    )
 
 
-def plot_weak_fixed_scaling(
+def plot_by_gpus(
     csv_files: List[str],
-    fixed_gpu_size: Optional[List[int]] = None,
-    fixed_data_size: Optional[List[int]] = None,
+    gpus: Optional[List[int]] = None,
+    data_size_queries: Optional[List[str]] = None,
     functions: Optional[List[str]] = None,
     precisions: Optional[List[str]] = None,
     pdims: Optional[List[str]] = None,
@@ -454,21 +411,26 @@ def plot_weak_fixed_scaling(
     plot_columns: List[str] = ['mean_time'],
     memory_units: str = 'bytes',
     label_text: str = '%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
-    xlabel: str = 'Data sizes',
-    title: str = 'Number of GPUs',
+    xlabel: str = 'Data size',
+    title: str = 'GPU counts',
     figure_size: tuple = (6, 4),
-    dark_bg: bool = False,
     output: Optional[str] = None,
+    ideal_line: bool = False,
+    xscale: str = 'linear',
 ):
     """
-    Plot size scaling at fixed GPU count (previous weak-scaling behavior).
+    Plot with subplots per GPU count, x-axis = data size (volume).
+
+    Auto-detects volume column from queries:
+    - ``local_*`` queries → x-axis = ``local_vol``
+    - ``global_*`` queries (default) → x-axis = ``global_vol``
     """
-    dataframes, available_gpu_counts, _ = clean_up_csv(
+    dataframes, available_gpus, _ = clean_up_csv(
         csv_files,
         precisions,
         functions,
-        fixed_gpu_size,
-        fixed_data_size,
+        gpus,
+        data_size_queries,
         pdims,
         pdims_strategy,
         backends,
@@ -478,16 +440,23 @@ def plot_weak_fixed_scaling(
         print('No dataframes found for the given arguments. Exiting...')
         return
 
+    # Auto-detect volume column from queries
+    if data_size_queries:
+        vol_col = _query_volume_type(data_size_queries[0])
+    else:
+        vol_col = 'global_vol'
+
+    gpu_list = sorted(available_gpus)
+
     plot_scaling(
         dataframes,
-        available_gpu_counts,
-        'x',
+        gpu_list,
         'gpus',
+        vol_col,
         xlabel,
         title,
         figure_size,
         output,
-        dark_bg,
         print_decompositions,
         backends,
         precisions,
@@ -496,4 +465,6 @@ def plot_weak_fixed_scaling(
         memory_units,
         label_text,
         pdims_strategy,
+        ideal_line,
+        xscale,
     )

@@ -54,6 +54,7 @@ test = [
     "pytest-cov",
 ]
 
+
 [project.scripts]
 jhp = "jax_hpc_profiler.main:main"
 

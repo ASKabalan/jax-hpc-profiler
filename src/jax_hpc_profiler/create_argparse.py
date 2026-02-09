@@ -19,6 +19,12 @@ def create_argparser():
     concat_parser.add_argument('input', type=str, help='Input directory for concatenation')
     concat_parser.add_argument('output', type=str, help='Output directory for concatenation')
 
+    # Probe subcommand
+    probe_parser = subparsers.add_parser('probe', help='Inspect CSV metadata')
+    probe_parser.add_argument(
+        '-f', '--csv_files', nargs='+', help='List of CSV files to inspect', required=True
+    )
+
     # Arguments for plotting
     plot_parser = subparsers.add_parser('plot', help='Plot CSV data')
     plot_parser.add_argument(
@@ -36,8 +42,12 @@ def create_argparser():
         '-d',
         '--data_size',
         nargs='*',
-        type=int,
-        help='List of data sizes to plot',
+        type=str,
+        help=(
+            'Data size queries. Examples: global_2097152, global_128x128x128, '
+            'local_2097152, local_128x128x128. Bare integers are auto-translated '
+            'to global_NxNxN (cubed).'
+        ),
         default=None,
     )
 
@@ -113,9 +123,6 @@ def create_argparser():
         '-o', '--output', help='Output file (if none then only show plot)', default=None
     )
     plot_parser.add_argument(
-        '-db', '--dark_bg', action='store_true', help='Use dark background for plotting'
-    )
-    plot_parser.add_argument(
         '-pd',
         '--print_decompositions',
         action='store_true',
@@ -135,24 +142,26 @@ def create_argparser():
     plot_parser.add_argument(
         '-sc',
         '--scaling',
-        choices=['Weak', 'Strong', 'WeakFixed', 'w', 's', 'wf'],
+        choices=['GPUs', 'data', 'g', 'd'],
         required=True,
-        help='Scaling type (Strong, Weak, or WeakFixed)',
+        help='Axis mode: "data" or "d" = subplots per data size, x=GPUs; '
+        '"GPUs" or "g" = subplots per GPU count, x=data size',
     )
 
-    # Weak-scaling specific options
+    # Ideal scaling line (works for both modes)
     plot_parser.add_argument(
-        '--weak_ideal_line',
+        '--ideal_line',
         action='store_true',
-        help='Overlay an ideal flat line for weak scaling (Weak mode only)',
+        help='Overlay an ideal scaling reference line (1/N for global_vol, flat for local_vol)',
     )
+
+    # X-axis scale
     plot_parser.add_argument(
-        '--weak_reverse_axes',
-        action='store_true',
-        help=(
-            'Weak mode only: put data size on the x-axis and annotate each point with GPUs instead '
-            'of data size. Requires --gpus and --data_size with equal lengths.'
-        ),
+        '-xs',
+        '--xscale',
+        choices=['linear', 'symlog', 'log2', 'log10'],
+        default='linear',
+        help='X-axis scale (default: linear). log2/log10 use arbitrary function scales.',
     )
 
     # Label customization argument
@@ -185,7 +194,7 @@ def create_argparser():
 
     args = parser.parse_args()
 
-    # if command was plot, then check if pdim_strategy is validat
+    # if command was plot, then check if pdim_strategy is valid
     if args.command == 'plot':
         if 'plot_all' in args.pdim_strategy and len(args.pdim_strategy) > 1:
             print(
@@ -210,9 +219,5 @@ def create_argparser():
             args.plot_columns = args.plot_memory
         else:
             raise ValueError('Either plot_times or plot_memory should be provided')
-
-        # Note: for Weak scaling, plot_weak_scaling enforces that both gpus and
-        # data_size are provided and have matching lengths. For Strong and
-        # WeakFixed, gpus/data_size remain optional as before.
 
     return args

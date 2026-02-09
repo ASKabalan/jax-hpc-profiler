@@ -1,6 +1,6 @@
 from .create_argparse import create_argparser
-from .plotting import plot_strong_scaling, plot_weak_fixed_scaling, plot_weak_scaling
-from .utils import concatenate_csvs
+from .plotting import plot_by_data_size, plot_by_gpus
+from .utils import concatenate_csvs, probe_csv_metadata
 
 
 def main():
@@ -9,6 +9,9 @@ def main():
     if args.command == 'concat':
         input_dir, output_dir = args.input, args.output
         concatenate_csvs(input_dir, output_dir)
+    elif args.command == 'probe':
+        report = probe_csv_metadata(args.csv_files)
+        print(report)
     elif args.command == 'label_help':
         print('Customize the label text for the plot. using these commands.')
         print(' -- %m% or %methodname%: method name')
@@ -20,33 +23,22 @@ def main():
         print(' -- %n% or %node%: node')
     elif args.command == 'plot':
         scaling = args.scaling.lower()
-        if scaling in ('weak', 'w'):
-            plot_weak_scaling(
+
+        # Translate bare integers to global_NxNxN (cubed)
+        data_size_queries = args.data_size
+        if data_size_queries:
+            translated = []
+            for q in data_size_queries:
+                if q.isdigit():
+                    q = f'global_{q}x{q}x{q}'
+                translated.append(q)
+            data_size_queries = translated
+
+        if scaling in ('data', 'd'):
+            plot_by_data_size(
                 args.csv_files,
                 args.gpus,
-                args.data_size,
-                args.function_name,
-                args.precision,
-                args.filter_pdims,
-                args.pdim_strategy,
-                args.print_decompositions,
-                args.backends,
-                args.plot_columns,
-                args.memory_units,
-                args.label_text,
-                args.xlabel if getattr(args, 'xlabel', None) is not None else 'Number of GPUs',
-                args.title,
-                args.figure_size,
-                args.dark_bg,
-                args.output,
-                args.weak_ideal_line,
-                args.weak_reverse_axes,
-            )
-        elif scaling in ('strong', 's'):
-            plot_strong_scaling(
-                args.csv_files,
-                args.gpus,
-                args.data_size,
+                data_size_queries,
                 args.function_name,
                 args.precision,
                 args.filter_pdims,
@@ -59,14 +51,15 @@ def main():
                 args.xlabel if getattr(args, 'xlabel', None) is not None else 'Number of GPUs',
                 args.title if getattr(args, 'title', None) is not None else 'Data sizes',
                 args.figure_size,
-                args.dark_bg,
                 args.output,
+                args.ideal_line,
+                args.xscale,
             )
-        elif scaling in ('weakfixed', 'wf'):
-            plot_weak_fixed_scaling(
+        elif scaling in ('gpus', 'g'):
+            plot_by_gpus(
                 args.csv_files,
                 args.gpus,
-                args.data_size,
+                data_size_queries,
                 args.function_name,
                 args.precision,
                 args.filter_pdims,
@@ -76,11 +69,12 @@ def main():
                 args.plot_columns,
                 args.memory_units,
                 args.label_text,
-                args.xlabel if getattr(args, 'xlabel', None) is not None else 'Data sizes',
-                args.title if getattr(args, 'title', None) is not None else 'Number of GPUs',
+                args.xlabel if getattr(args, 'xlabel', None) is not None else 'Data size',
+                args.title if getattr(args, 'title', None) is not None else 'GPU counts',
                 args.figure_size,
-                args.dark_bg,
                 args.output,
+                args.ideal_line,
+                args.xscale,
             )
 
 
