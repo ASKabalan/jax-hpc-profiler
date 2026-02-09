@@ -4,9 +4,8 @@ import pytest
 
 from jax_hpc_profiler.plotting import (
     configure_axes,
-    plot_strong_scaling,
-    plot_weak_fixed_scaling,
-    plot_weak_scaling,
+    plot_by_data_size,
+    plot_by_gpus,
 )
 
 
@@ -26,53 +25,31 @@ def sample_csv(tmp_path):
     # function,precision,x,y,z,px,py,backend,nodes,jit,min,max,mean,std,last,gen_code,arg_size,
     # out_size,tmp_size
     data = [
-        'fun1,float32,100,100,100,1,1,NCCL,1,0.1,1.0,1.2,1.1,0.01,1.1,1000,1000,1000,1000',
-        'fun1,float32,200,200,200,1,1,NCCL,1,0.2,2.0,2.4,2.2,0.02,2.2,2000,2000,2000,2000',
-        'fun1,float32,400,400,400,1,1,NCCL,1,0.4,4.0,4.8,4.4,0.04,4.4,4000,4000,4000,4000',
-        # Add entries for strong scaling (same x, diff nodes/gpus)
-        # nodes is used as 'gpus' in some logic?
-        # utils.py: df['gpus'] = df['px'] * df['py']
-        # So we vary px*py.
-        'fun2,float32,1000,1000,1000,1,1,NCCL,1,0.1,10.0,12.0,11.0,0.1,11.0,1000,1000,1000,1000',
-        'fun2,float32,1000,1000,1000,2,1,NCCL,2,0.1,5.0,6.0,5.5,0.05,5.5,1000,1000,1000,1000',
-        'fun2,float32,1000,1000,1000,2,2,NCCL,4,0.1,2.5,3.0,2.75,0.025,2.75,1000,1000,1000,1000',
+        # Strong scaling rows: same (x,y,z)=100^3, different gpus
+        'fun1,float32,100,100,100,1,1,NCCL,1,0.1,10.0,12.0,11.0,0.1,11.0,1000,1000,1000,1000',
+        'fun1,float32,100,100,100,2,1,NCCL,2,0.1,5.0,6.0,5.5,0.05,5.5,1000,1000,1000,1000',
+        'fun1,float32,100,100,100,2,2,NCCL,4,0.1,2.5,3.0,2.75,0.025,2.75,1000,1000,1000,1000',
+        # Weak scaling rows: different (x,y,z) but same local_vol = 100^3
+        # gpus=1, x=y=z=100 -> local_vol = 1000000
+        # gpus=2, 200*100*100 = 2000000, local_vol = 1000000
+        'fun1,float32,200,100,100,2,1,NCCL,2,0.1,10.5,12.5,11.5,0.15,11.5,2000,2000,2000,2000',
+        # gpus=4, 400*100*100 = 4000000, local_vol = 1000000
+        'fun1,float32,400,100,100,2,2,NCCL,4,0.1,11.0,13.0,12.0,0.2,12.0,4000,4000,4000,4000',
     ]
     with open(csv_file, 'w') as f:
         f.write('\n'.join(data) + '\n')
     return str(csv_file)
 
 
-@pytest.fixture
-def mock_adjust_text():
-    with patch('jax_hpc_profiler.plotting.adjust_text') as mock:
-        yield mock
+def test_plot_by_data_size_global(mock_plt, sample_csv):
+    # Subplots per global volume (strong scaling), x=GPUs
+    # Rows 0,1,2 have x=y=z=100, global_vol=1000000, gpus=1,2,4
 
-
-def test_plot_weak_fixed_scaling(mock_plt, sample_csv):
-    # WeakFixed: vary data size (x), fixed GPUs (calculated from px*py).
-    # In sample_csv fun1: gpus=1, x=[100, 200, 400]
-
-    plot_weak_fixed_scaling(
+    plot_by_data_size(
         csv_files=[sample_csv],
-        fixed_gpu_size=[1],
-        fixed_data_size=[100, 200, 400],
+        data_size_queries=['global_1000000'],
+        gpus=[1, 2, 4],
         functions=['fun1'],
-        xlabel='Data Size',
-        title='Weak Fixed Scaling',
-    )
-
-    assert mock_plt.show.called or mock_plt.savefig.called
-
-
-def test_plot_strong_scaling(mock_plt, sample_csv):
-    # Strong: fixed data size (x), vary GPUs.
-    # In sample_csv fun2: x=1000, gpus=[1, 2, 4]
-
-    plot_strong_scaling(
-        csv_files=[sample_csv],
-        fixed_data_size=[1000],
-        fixed_gpu_size=[1, 2, 4],
-        functions=['fun2'],
         xlabel='GPUs',
         title='Strong Scaling',
     )
@@ -80,23 +57,48 @@ def test_plot_strong_scaling(mock_plt, sample_csv):
     assert mock_plt.show.called or mock_plt.savefig.called
 
 
-def test_plot_weak_scaling(mock_plt, mock_adjust_text, sample_csv):
-    # Weak: explicit pairs of (gpus, data_size)
-    # We have (1, 100) for fun1.
+def test_plot_by_data_size_local(mock_plt, sample_csv):
+    # Subplots per local volume (weak scaling), x=GPUs
+    # Rows 0 (gpus=1, 100^3), 3 (gpus=2, 200*100*100), 4 (gpus=4, 400*100*100)
+    # all have local_vol = 1000000
 
-    plot_weak_scaling(
+    plot_by_data_size(
         csv_files=[sample_csv],
-        fixed_gpu_size=[1],
-        fixed_data_size=[100],
+        data_size_queries=['local_1000000'],
         functions=['fun1'],
         xlabel='GPUs',
         title='Weak Scaling',
     )
 
     assert mock_plt.show.called or mock_plt.savefig.called
-    assert (
-        mock_adjust_text.called or not mock_adjust_text.called
-    )  # It's okay if called or not, just don't crash.
+
+
+def test_plot_by_data_size_nxmxk(mock_plt, sample_csv):
+    # Test NxMxK query format: 100x100x100 = 1000000
+    plot_by_data_size(
+        csv_files=[sample_csv],
+        data_size_queries=['global_100x100x100'],
+        gpus=[1, 2, 4],
+        functions=['fun1'],
+        xlabel='GPUs',
+        title='Strong Scaling NxMxK',
+    )
+
+    assert mock_plt.show.called or mock_plt.savefig.called
+
+
+def test_plot_by_gpus(mock_plt, sample_csv):
+    # Subplots per GPU count, x=data size
+    plot_by_gpus(
+        csv_files=[sample_csv],
+        gpus=[1, 2],
+        data_size_queries=['global_1000000', 'global_2000000'],
+        functions=['fun1'],
+        xlabel='Data size',
+        title='GPU counts',
+    )
+
+    assert mock_plt.show.called or mock_plt.savefig.called
 
 
 def test_configure_axes():
@@ -108,5 +110,4 @@ def test_configure_axes():
 
     mock_ax.set_title.assert_called_with('Test Plot')
     mock_ax.set_xlabel.assert_called_with('X Label')
-    mock_ax.set_xscale.assert_called()
     mock_ax.set_yscale.assert_called_with('symlog')
