@@ -1,27 +1,13 @@
 import os
-import time
-from functools import partial
-from typing import Any, Callable, Optional, Tuple
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Optional
 
-import jax
-import jax.numpy as jnp
 import numpy as np
-from jax import make_jaxpr, shard_map
-from jax.sharding import NamedSharding
-from jax.sharding import PartitionSpec as P
-from jaxtyping import Array
 from tabulate import tabulate
 
 
-class Timer:
-    def __init__(
-        self,
-        save_jaxpr=False,
-        compile_info=True,
-        jax_fn=True,
-        devices=None,
-        static_argnums=(),
-    ):
+class AbstractTimer(ABC):
+    def __init__(self):
         self.jit_time = 0.0
         self.times = []
         self.profiling_data = {
@@ -31,14 +17,25 @@ class Timer:
             'temp_size': 'N/A',
         }
         self.compiled_code = {'JAXPR': 'N/A', 'LOWERED': 'N/A', 'COMPILED': 'N/A'}
-        self.save_jaxpr = save_jaxpr
-        self.compile_info = compile_info
-        self.jax_fn = jax_fn
-        self.devices = devices
-        self.static_argnums = static_argnums
 
-    def _normalize_memory_units(self, memory_analysis) -> str:
-        if not (self.jax_fn and self.compile_info):
+    @abstractmethod
+    def chrono_jit(self, fun: Callable, *args, **kwargs): ...
+
+    @abstractmethod
+    def chrono_fun(self, fun: Callable, *args, **kwargs): ...
+
+    @abstractmethod
+    def _get_mean_times(self) -> np.ndarray: ...
+
+    def _should_write(self) -> bool:
+        return True
+
+    def _has_compile_info(self) -> bool:
+        return False
+
+    @staticmethod
+    def _normalize_memory_units(memory_analysis) -> str:
+        if memory_analysis == 'N/A':
             return memory_analysis
 
         sizes_str = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
@@ -47,94 +44,16 @@ class Timer:
 
         return f'{memory_analysis / factors[factor]:.2f} {sizes_str[factor]}'
 
-    def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
-        if memory_analysis is None:
-            return None, None, None, None
-        return (
-            memory_analysis.generated_code_size_in_bytes,
-            memory_analysis.argument_size_in_bytes,
-            memory_analysis.output_size_in_bytes,
-            memory_analysis.temp_size_in_bytes,
-        )
-
-    def chrono_jit(self, fun: Callable, *args, **kwargs) -> Array:
-        start = time.perf_counter()
-        out = fun(*args, **kwargs)
-        if self.jax_fn:
-
-            def _block(x):
-                if isinstance(x, Array):
-                    x.block_until_ready()
-
-            jax.tree.map(_block, out)
-        end = time.perf_counter()
-        self.jit_time = (end - start) * 1e3
-
-        self.compiled_code['JAXPR'] = 'N/A'
-        self.compiled_code['LOWERED'] = 'N/A'
-        self.compiled_code['COMPILED'] = 'N/A'
-        self.profiling_data['generated_code'] = 'N/A'
-        self.profiling_data['argument_size'] = 'N/A'
-        self.profiling_data['output_size'] = 'N/A'
-        self.profiling_data['temp_size'] = 'N/A'
-
-        if self.save_jaxpr:
-            jaxpr = make_jaxpr(fun, static_argnums=self.static_argnums)(*args, **kwargs)
-            self.compiled_code['JAXPR'] = jaxpr.pretty_print()
-
-        if self.jax_fn and self.compile_info:
-            lowered = jax.jit(fun, static_argnums=self.static_argnums).lower(*args, **kwargs)
-            compiled = lowered.compile()
-            memory_analysis = self._read_memory_analysis(compiled.memory_analysis())
-
-            self.compiled_code['LOWERED'] = lowered.as_text()
-            self.compiled_code['COMPILED'] = compiled.as_text()
-            self.profiling_data['generated_code'] = memory_analysis[0]
-            self.profiling_data['argument_size'] = memory_analysis[1]
-            self.profiling_data['output_size'] = memory_analysis[2]
-            self.profiling_data['temp_size'] = memory_analysis[3]
-
-        return out
-
-    def chrono_fun(self, fun: Callable, *args, **kwargs) -> Array:
-        start = time.perf_counter()
-        out = fun(*args, **kwargs)
-        if self.jax_fn:
-
-            def _block(x):
-                if isinstance(x, Array):
-                    x.block_until_ready()
-
-            jax.tree.map(_block, out)
-        end = time.perf_counter()
-        self.times.append((end - start) * 1e3)
-        return out
-
-    def _get_mean_times(self) -> Array:
-        if jax.device_count() == 1 or jax.process_count() == 1:
-            return np.array(self.times)
-
-        if self.devices is None:
-            self.devices = jax.devices()
-
-        mesh = jax.make_mesh((len(self.devices),), ('x',), devices=self.devices)
-        sharding = NamedSharding(mesh, P('x'))
-
-        times_array = jnp.array(self.times)
-        global_shape = (jax.device_count(), times_array.shape[0])
-        global_times = jax.make_array_from_callback(
-            shape=global_shape,
-            sharding=sharding,
-            data_callback=lambda _: jnp.expand_dims(times_array, axis=0),
-        )
-
-        @partial(shard_map, mesh=mesh, in_specs=P('x'), out_specs=P())
-        def get_mean_times(times) -> Array:
-            return jax.lax.pmean(times, axis_name='x')
-
-        times_array = get_mean_times(global_times)
-        times_array.block_until_ready()
-        return np.array(times_array.addressable_data(0)[0])
+    def _reset(self):
+        self.jit_time = 0.0
+        self.times = []
+        self.profiling_data = {
+            'generated_code': 'N/A',
+            'argument_size': 'N/A',
+            'output_size': 'N/A',
+            'temp_size': 'N/A',
+        }
+        self.compiled_code = {'JAXPR': 'N/A', 'LOWERED': 'N/A', 'COMPILED': 'N/A'}
 
     def report(
         self,
@@ -154,6 +73,7 @@ class Timer:
     ) -> None:
         if self.jit_time == 0.0 and len(self.times) == 0:
             print(f'No profiling data to report for {function}')
+            self._reset()
             return
 
         if md_filename is None:
@@ -179,7 +99,7 @@ class Timer:
         z = x if z is None else z
 
         times_array = self._get_mean_times()
-        if jax.process_index() == 0:
+        if self._should_write():
             min_time = np.min(times_array)
             max_time = np.max(times_array)
             mean_time = np.mean(times_array)
@@ -255,7 +175,7 @@ class Timer:
                         tablefmt='github',
                     )
                 )
-                if self.jax_fn and self.compile_info:
+                if self._has_compile_info():
                     f.write('\n---\n')
                     f.write('## Compiled Code\n')
                     f.write('```hlo\n')
@@ -267,14 +187,51 @@ class Timer:
                     f.write(self.compiled_code['LOWERED'])
                     f.write('\n```\n')
                     f.write('\n---\n')
-                    if self.save_jaxpr:
+                    if self.compiled_code.get('JAXPR', 'N/A') != 'N/A':
                         f.write('## JAXPR\n')
                         f.write('```haskel\n')
                         f.write(self.compiled_code['JAXPR'])
                         f.write('\n```\n')
 
-        # Reset the timer
-        self.jit_time = 0.0
-        self.times = []
-        self.profiling_data = {}
-        self.compiled_code = {}
+        self._reset()
+
+
+class NoTimer(AbstractTimer):
+    def chrono_jit(self, fun: Callable, *args, **kwargs):
+        return fun(*args, **kwargs)
+
+    def chrono_fun(self, fun: Callable, *args, **kwargs):
+        return fun(*args, **kwargs)
+
+    def _get_mean_times(self) -> np.ndarray:
+        return np.array([])
+
+    def _should_write(self) -> bool:
+        return False
+
+    def report(self, *args, **kwargs) -> None:
+        pass
+
+
+def Timer(
+    save_jaxpr=False,
+    compile_info=True,
+    jax_fn=True,
+    active=True,
+    devices=None,
+    static_argnums=(),
+):
+    if not active:
+        return NoTimer()
+    if jax_fn:
+        from .jax_timer import JaxTimer
+
+        return JaxTimer(
+            save_jaxpr=save_jaxpr,
+            compile_info=compile_info,
+            devices=devices,
+            static_argnums=static_argnums,
+        )
+    from .numpy_timer import NumpyTimer
+
+    return NumpyTimer()

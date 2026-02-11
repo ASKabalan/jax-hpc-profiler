@@ -164,6 +164,13 @@ def create_argparser():
         help='X-axis scale (default: linear). log2/log10 use arbitrary function scales.',
     )
 
+    # Cube notation argument
+    plot_parser.add_argument(
+        '--disable_cube_notation',
+        action='store_true',
+        help='Disable N^3 notation for cubic volumes (e.g. show 128x128x128 instead of 128^3)',
+    )
+
     # Label customization argument
     plot_parser.add_argument(
         '-l',

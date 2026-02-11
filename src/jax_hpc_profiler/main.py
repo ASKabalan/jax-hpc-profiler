@@ -34,6 +34,8 @@ def main():
                 translated.append(q)
             data_size_queries = translated
 
+        use_cube_notation = not args.disable_cube_notation
+
         if scaling in ('data', 'd'):
             plot_by_data_size(
                 args.csv_files,
@@ -54,6 +56,7 @@ def main():
                 args.output,
                 args.ideal_line,
                 args.xscale,
+                use_cube_notation=use_cube_notation,
             )
         elif scaling in ('gpus', 'g'):
             plot_by_gpus(
@@ -75,6 +78,7 @@ def main():
                 args.output,
                 args.ideal_line,
                 args.xscale,
+                use_cube_notation=use_cube_notation,
             )
 
 
