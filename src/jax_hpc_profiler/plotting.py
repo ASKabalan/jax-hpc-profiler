@@ -24,6 +24,7 @@ def _build_volume_labels(
     dataframes: Dict[str, pd.DataFrame],
     vol_column: str,
     volumes: List[int],
+    use_cube_notation: bool = True,
 ) -> tuple[dict[int, str], bool]:
     """Build tick labels for volume x-axis values.
 
@@ -34,7 +35,9 @@ def _build_volume_labels(
     has_non_cube = False
     for vol in sorted(set(int(v) for v in volumes)):
         cbrt = round(vol ** (1.0 / 3.0))
-        if cbrt**3 == vol:
+        is_cube = cbrt**3 == vol
+
+        if use_cube_notation and is_cube:
             labels[vol] = f'{cbrt}\u00b3'
         elif vol_column == 'global_vol':
             # Look up first (x, y, z) row for this volume
@@ -43,12 +46,23 @@ def _build_volume_labels(
                 rows = df[df[vol_column] == vol]
                 if not rows.empty:
                     row = rows.iloc[0]
-                    x, y, z = int(row['x']), int(row['y']), int(row['z'])
-                    if x == y == z:
-                        labels[vol] = f'{x}\u00b3'
+                    # Check if we have dimensions
+                    if {'x', 'y', 'z'}.issubset(row.index):
+                        x, y, z = int(row['x']), int(row['y']), int(row['z'])
+                        dims = [d for d in (x, y, z) if d > 1]
+                        if not dims:
+                            dims = [1]
+
+                        if len(dims) == 1:
+                            labels[vol] = str(dims[0])
+                        else:
+                            labels[vol] = '\u00d7'.join(map(str, dims))
+                            has_non_cube = True
                     else:
-                        labels[vol] = f'{x}\u00d7{y}\u00d7{z}'
+                        # Fallback if x,y,z columns are missing
+                        labels[vol] = f'{vol:,}'
                         has_non_cube = True
+
                     found = True
                     break
             if not found:
@@ -157,6 +171,7 @@ def plot_scaling(
     pdims_strategy: List[str] = ['plot_fastest'],
     ideal_line: bool = False,
     xscale: str = 'linear',
+    use_cube_notation: bool = True,
 ):
     """
     General scaling plot function.
@@ -200,6 +215,8 @@ def plot_scaling(
         Only drawn when x_column is 'gpus': global_vol → 1/N, local_vol → flat.
     xscale : str, optional
         X-axis scale: 'linear', 'symlog', 'log2', or 'log10', by default 'linear'.
+    use_cube_notation : bool, optional
+        Whether to use N^3 notation for cubic volumes, by default True.
     """
     num_subplots = len(scaling_labels)
     if num_subplots == 0:
@@ -298,7 +315,9 @@ def plot_scaling(
             tick_labels = None
             rotate = False
             if x_column in ('global_vol', 'local_vol'):
-                tick_labels, has_non_cube = _build_volume_labels(dataframes, x_column, x_values)
+                tick_labels, has_non_cube = _build_volume_labels(
+                    dataframes, x_column, x_values, use_cube_notation=use_cube_notation
+                )
                 rotate = has_non_cube
 
             configure_axes(
@@ -345,6 +364,7 @@ def plot_by_data_size(
     output: Optional[str] = None,
     ideal_line: bool = False,
     xscale: str = 'linear',
+    use_cube_notation: bool = True,
 ):
     """
     Plot with subplots per data size query, x-axis = GPUs.
@@ -395,6 +415,7 @@ def plot_by_data_size(
         pdims_strategy,
         ideal_line,
         xscale,
+        use_cube_notation,
     )
 
 
@@ -417,6 +438,7 @@ def plot_by_gpus(
     output: Optional[str] = None,
     ideal_line: bool = False,
     xscale: str = 'linear',
+    use_cube_notation: bool = True,
 ):
     """
     Plot with subplots per GPU count, x-axis = data size (volume).
@@ -467,4 +489,5 @@ def plot_by_gpus(
         pdims_strategy,
         ideal_line,
         xscale,
+        use_cube_notation,
     )

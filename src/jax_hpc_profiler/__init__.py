@@ -1,6 +1,8 @@
 from .create_argparse import create_argparser
+from .jax_timer import JaxTimer
+from .numpy_timer import NumpyTimer
 from .plotting import plot_by_data_size, plot_by_gpus
-from .timer import Timer
+from .timer import AbstractTimer, NoTimer, Timer
 from .utils import (
     clean_up_csv,
     concatenate_csvs,
@@ -13,6 +15,10 @@ __all__ = [
     'create_argparser',
     'plot_by_data_size',
     'plot_by_gpus',
+    'AbstractTimer',
+    'JaxTimer',
+    'NumpyTimer',
+    'NoTimer',
     'Timer',
     'clean_up_csv',
     'concatenate_csvs',
