@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import make_jaxpr, shard_map
-from jax.sharding import NamedSharding
+from jax.sharding import Mesh, NamedSharding
 from jax.sharding import PartitionSpec as P
 from jaxtyping import Array
 
@@ -101,7 +101,7 @@ class JaxTimer(AbstractTimer):
         if self.devices is None:
             self.devices = jax.devices()
 
-        mesh = jax.make_mesh((len(self.devices),), ('x',), devices=self.devices)
+        mesh = Mesh(self.devices, ('x',))
         sharding = NamedSharding(mesh, P('x'))
 
         times_array = jnp.array(self.times)
