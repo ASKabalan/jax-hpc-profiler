@@ -33,21 +33,24 @@ pip install jax-hpc-profiler
 
 ## Generating CSV Files Using the Timer Class
 
-To generate CSV files, you can use the `Timer` class provided in the `jax_hpc_profiler.timer` module. This class helps in timing functions and saving the timing results to CSV files.
+To generate CSV files, you can use the `JaxTimer` class for JAX functions or `NumpyTimer` for NumPy functions. Alternatively, the `Timer` function can be used as a factory. These classes help in timing functions and saving the timing results to CSV files.
 
-### Example Usage
+### Example Usage (JAX)
 
 ```python
 import jax
-from jax_hpc_profiler import Timer
+import jax.numpy as jnp
+from jax_hpc_profiler import JaxTimer
 
+@jax.jit
 def fcn(m, n, k):
-    return jax.numpy.dot(m, n) + k
+    return jnp.dot(m, n) + k
 
-timer = Timer(save_jaxpr=True)
-m = jax.numpy.ones((1000, 1000))
-n = jax.numpy.ones((1000, 1000))
-k = jax.numpy.ones((1000, 1000))
+# devices argument is optional, useful for distributed profiling
+timer = JaxTimer(save_jaxpr=True, devices=None)
+m = jnp.ones((1000, 1000))
+n = jnp.ones((1000, 1000))
+k = jnp.ones((1000, 1000))
 
 timer.chrono_jit(fcn, m, n, k)
 for i in range(10):
