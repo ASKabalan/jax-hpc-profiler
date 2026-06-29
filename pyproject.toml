@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "jax_hpc_profiler"
@@ -21,7 +21,7 @@ dependencies = [
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = ["jax", "hpc", "profiling", "benchmarking", "visualization", "scaling", "performance-analysis", "gpu", "distributed-computing"]
 
 # For a list of valid classifiers, see https://pypi.org/classifiers/
@@ -38,8 +38,6 @@ classifiers = [
   # that you indicate you support Python 3. These classifiers are *not*
   # checked by "pip install". See instead "requires-python" key in this file.
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -53,7 +51,15 @@ test = [
     "pytest",
     "pytest-cov",
 ]
+examples = [
+    "papermill",
+    "ipykernel",
+]
 
+[dependency-groups]
+dev = [
+    "pre-commit",
+]
 
 [project.scripts]
 jhp = "jax_hpc_profiler.main:main"

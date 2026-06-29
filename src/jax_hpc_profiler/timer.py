@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from tabulate import tabulate
@@ -68,7 +69,7 @@ class AbstractTimer(ABC):
         backend: str = 'NCCL',
         nodes: int = 1,
         md_filename: str | None = None,
-        npz_data: Optional[dict[str, Any]] = None,
+        npz_data: dict[str, Any] | None = None,
         extra_info: dict[str, Any] = {},
     ) -> None:
         if self.jit_time == 0.0 and len(self.times) == 0:

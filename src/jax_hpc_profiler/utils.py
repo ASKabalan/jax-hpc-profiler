@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from matplotlib.axes import Axes
@@ -75,7 +74,7 @@ def _read_csv(csv_file: str) -> pd.DataFrame:
     )
 
 
-def inspect_data(dataframes: Dict[str, pd.DataFrame]) -> None:
+def inspect_data(dataframes: dict[str, pd.DataFrame]) -> None:
     """
     Inspect the dataframes.
 
@@ -148,12 +147,12 @@ def plot_with_pdims_strategy(
     ax: Axes,
     df: pd.DataFrame,
     method: str,
-    pdims_strategy: List[str],
+    pdims_strategy: list[str],
     print_decompositions: bool,
     x_col: str,
     y_col: str,
     label_template: str,
-) -> Optional[Tuple[List[float], List[float]]]:
+) -> tuple[list[float], list[float]] | None:
     """
     Plot the data based on the pdims strategy.
 
@@ -379,16 +378,16 @@ def concatenate_csvs(root_dir: str, output_dir: str):
 
 
 def clean_up_csv(
-    csv_files: List[str],
-    precisions: Optional[List[str]] = None,
-    function_names: Optional[List[str]] = None,
-    gpus: Optional[List[int]] = None,
-    data_size_queries: Optional[List[str]] = None,
-    pdims: Optional[List[str]] = None,
-    pdims_strategy: List[str] = ['plot_fastest'],
-    backends: Optional[List[str]] = None,
+    csv_files: list[str],
+    precisions: list[str] | None = None,
+    function_names: list[str] | None = None,
+    gpus: list[int] | None = None,
+    data_size_queries: list[str] | None = None,
+    pdims: list[str] | None = None,
+    pdims_strategy: list[str] = ['plot_fastest'],
+    backends: list[str] | None = None,
     memory_units: str = 'KB',
-) -> Tuple[Dict[str, pd.DataFrame], List[int], List[int]]:
+) -> tuple[dict[str, pd.DataFrame], list[int], list[int]]:
     """
     Clean up and aggregate data from CSV files.
 
@@ -546,7 +545,7 @@ def _format_volume(vol: int) -> str:
     return f'{vol:,}'
 
 
-def probe_csv_metadata(csv_files: List[str]) -> str:
+def probe_csv_metadata(csv_files: list[str]) -> str:
     """
     Load CSVs and return a formatted report of available metadata.
 
