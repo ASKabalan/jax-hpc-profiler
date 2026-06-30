@@ -1,5 +1,4 @@
 from itertools import product
-from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,9 +20,9 @@ def _format_volume_title(vol: int) -> str:
 
 
 def _build_volume_labels(
-    dataframes: Dict[str, pd.DataFrame],
+    dataframes: dict[str, pd.DataFrame],
     vol_column: str,
-    volumes: List[int],
+    volumes: list[int],
     use_cube_notation: bool = True,
 ) -> tuple[dict[int, str], bool]:
     """Build tick labels for volume x-axis values.
@@ -76,14 +75,14 @@ def _build_volume_labels(
 
 def configure_axes(
     ax: Axes,
-    x_values: List[int],
-    y_values: List[float],
-    title: Optional[str],
+    x_values: list[int],
+    y_values: list[float],
+    title: str | None,
     xlabel: str,
     plotting_memory: bool = False,
     memory_units: str = 'bytes',
     xscale: str = 'linear',
-    x_tick_labels: Optional[dict] = None,
+    x_tick_labels: dict | None = None,
     rotate_x_ticks: bool = False,
 ):
     """
@@ -153,22 +152,22 @@ def configure_axes(
 
 
 def plot_scaling(
-    dataframes: Dict[str, pd.DataFrame],
-    scaling_labels: List,
+    dataframes: dict[str, pd.DataFrame],
+    scaling_labels: list,
     scaling_label_column: str,
     x_column: str,
     xlabel: str,
     title: str,
     figure_size: tuple = (6, 4),
-    output: Optional[str] = None,
+    output: str | None = None,
     print_decompositions: bool = False,
-    backends: Optional[List[str]] = None,
-    precisions: Optional[List[str]] = None,
-    functions: Optional[List[str]] = None,
-    plot_columns: List[str] = ['mean_time'],
+    backends: list[str] | None = None,
+    precisions: list[str] | None = None,
+    functions: list[str] | None = None,
+    plot_columns: list[str] = ['mean_time'],
     memory_units: str = 'bytes',
     label_text: str = 'plot',
-    pdims_strategy: List[str] = ['plot_fastest'],
+    pdims_strategy: list[str] = ['plot_fastest'],
     ideal_line: bool = False,
     xscale: str = 'linear',
     use_cube_notation: bool = True,
@@ -346,22 +345,22 @@ def plot_scaling(
 
 
 def plot_by_data_size(
-    csv_files: List[str],
-    gpus: Optional[List[int]] = None,
-    data_size_queries: Optional[List[str]] = None,
-    functions: Optional[List[str]] = None,
-    precisions: Optional[List[str]] = None,
-    pdims: Optional[List[str]] = None,
-    pdims_strategy: List[str] = ['plot_fastest'],
+    csv_files: list[str],
+    gpus: list[int] | None = None,
+    data_size_queries: list[str] | None = None,
+    functions: list[str] | None = None,
+    precisions: list[str] | None = None,
+    pdims: list[str] | None = None,
+    pdims_strategy: list[str] = ['plot_fastest'],
     print_decompositions: bool = False,
-    backends: Optional[List[str]] = None,
-    plot_columns: List[str] = ['mean_time'],
+    backends: list[str] | None = None,
+    plot_columns: list[str] = ['mean_time'],
     memory_units: str = 'bytes',
     label_text: str = '%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
     xlabel: str = 'Number of GPUs',
     title: str = 'Data sizes',
     figure_size: tuple = (6, 4),
-    output: Optional[str] = None,
+    output: str | None = None,
     ideal_line: bool = False,
     xscale: str = 'linear',
     use_cube_notation: bool = True,
@@ -420,22 +419,22 @@ def plot_by_data_size(
 
 
 def plot_by_gpus(
-    csv_files: List[str],
-    gpus: Optional[List[int]] = None,
-    data_size_queries: Optional[List[str]] = None,
-    functions: Optional[List[str]] = None,
-    precisions: Optional[List[str]] = None,
-    pdims: Optional[List[str]] = None,
-    pdims_strategy: List[str] = ['plot_fastest'],
+    csv_files: list[str],
+    gpus: list[int] | None = None,
+    data_size_queries: list[str] | None = None,
+    functions: list[str] | None = None,
+    precisions: list[str] | None = None,
+    pdims: list[str] | None = None,
+    pdims_strategy: list[str] = ['plot_fastest'],
     print_decompositions: bool = False,
-    backends: Optional[List[str]] = None,
-    plot_columns: List[str] = ['mean_time'],
+    backends: list[str] | None = None,
+    plot_columns: list[str] = ['mean_time'],
     memory_units: str = 'bytes',
     label_text: str = '%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
     xlabel: str = 'Data size',
     title: str = 'GPU counts',
     figure_size: tuple = (6, 4),
-    output: Optional[str] = None,
+    output: str | None = None,
     ideal_line: bool = False,
     xscale: str = 'linear',
     use_cube_notation: bool = True,

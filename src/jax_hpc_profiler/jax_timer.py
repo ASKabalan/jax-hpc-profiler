@@ -1,6 +1,7 @@
 import time
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -33,7 +34,7 @@ class JaxTimer(AbstractTimer):
     def _has_compile_info(self) -> bool:
         return self.compile_info
 
-    def _read_memory_analysis(self, memory_analysis: Any) -> Tuple:
+    def _read_memory_analysis(self, memory_analysis: Any) -> tuple:
         if memory_analysis is None:
             return None, None, None, None
         return (
