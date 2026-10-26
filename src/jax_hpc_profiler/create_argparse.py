@@ -10,26 +10,36 @@ def create_argparser():
     argparse.Namespace
         Parsed and validated arguments.
     """
-    parser = argparse.ArgumentParser(description='HPC Plotter for benchmarking data')
+    parser = argparse.ArgumentParser(
+        description='HPC Plotter for benchmarking data')
 
     # Group for concatenation to ensure mutually exclusive behavior
     subparsers = parser.add_subparsers(dest='command', required=True)
 
-    concat_parser = subparsers.add_parser('concat', help='Concatenate CSV files')
-    concat_parser.add_argument('input', type=str, help='Input directory for concatenation')
-    concat_parser.add_argument('output', type=str, help='Output directory for concatenation')
+    concat_parser = subparsers.add_parser('concat',
+                                          help='Concatenate CSV files')
+    concat_parser.add_argument('input',
+                               type=str,
+                               help='Input directory for concatenation')
+    concat_parser.add_argument('output',
+                               type=str,
+                               help='Output directory for concatenation')
 
     # Probe subcommand
     probe_parser = subparsers.add_parser('probe', help='Inspect CSV metadata')
-    probe_parser.add_argument(
-        '-f', '--csv_files', nargs='+', help='List of CSV files to inspect', required=True
-    )
+    probe_parser.add_argument('-f',
+                              '--csv_files',
+                              nargs='+',
+                              help='List of CSV files to inspect',
+                              required=True)
 
     # Arguments for plotting
     plot_parser = subparsers.add_parser('plot', help='Plot CSV data')
-    plot_parser.add_argument(
-        '-f', '--csv_files', nargs='+', help='List of CSV files to plot', required=True
-    )
+    plot_parser.add_argument('-f',
+                             '--csv_files',
+                             nargs='+',
+                             help='List of CSV files to plot',
+                             required=True)
     plot_parser.add_argument(
         '-g',
         '--gpus',
@@ -43,11 +53,10 @@ def create_argparser():
         '--data_size',
         nargs='*',
         type=str,
-        help=(
-            'Data size queries. Examples: global_2097152, global_128x128x128, '
-            'local_2097152, local_128x128x128. Bare integers are auto-translated '
-            'to global_NxNxN (cubed).'
-        ),
+        help=
+        ('Data size queries. Examples: global_2097152, global_128x128x128, '
+         'local_2097152, local_128x128x128. Bare integers are auto-translated '
+         'to global_NxNxN (cubed).'),
         default=None,
     )
 
@@ -105,7 +114,9 @@ def create_argparser():
         '-pm',
         '--plot_memory',
         nargs='*',
-        choices=['generated_code', 'argument_size', 'output_size', 'temp_size'],
+        choices=[
+            'generated_code', 'argument_size', 'output_size', 'temp_size'
+        ],
         help='Memory columns to plot',
     )
     plot_parser.add_argument(
@@ -116,12 +127,16 @@ def create_argparser():
     )
 
     # Plot customization arguments
-    plot_parser.add_argument(
-        '-fs', '--figure_size', nargs=2, type=int, help='Figure size', default=(10, 6)
-    )
-    plot_parser.add_argument(
-        '-o', '--output', help='Output file (if none then only show plot)', default=None
-    )
+    plot_parser.add_argument('-fs',
+                             '--figure_size',
+                             nargs=2,
+                             type=int,
+                             help='Figure size',
+                             default=(10, 6))
+    plot_parser.add_argument('-o',
+                             '--output',
+                             help='Output file (if none then only show plot)',
+                             default=None)
     plot_parser.add_argument(
         '-pd',
         '--print_decompositions',
@@ -152,7 +167,8 @@ def create_argparser():
     plot_parser.add_argument(
         '--ideal_line',
         action='store_true',
-        help='Overlay an ideal scaling reference line (1/N for global_vol, flat for local_vol)',
+        help=
+        'Overlay an ideal scaling reference line (1/N for global_vol, flat for local_vol)',
     )
 
     # X-axis scale
@@ -161,14 +177,16 @@ def create_argparser():
         '--xscale',
         choices=['linear', 'symlog', 'log2', 'log10'],
         default='linear',
-        help='X-axis scale (default: linear). log2/log10 use arbitrary function scales.',
+        help=
+        'X-axis scale (default: linear). log2/log10 use arbitrary function scales.',
     )
 
     # Cube notation argument
     plot_parser.add_argument(
         '--disable_cube_notation',
         action='store_true',
-        help='Disable N^3 notation for cubic volumes (e.g. show 128x128x128 instead of 128^3)',
+        help=
+        'Disable N^3 notation for cubic volumes (e.g. show 128x128x128 instead of 128^3)',
     )
 
     # Cube notation in the subplot title (default: enabled for data-size scaling,
@@ -178,7 +196,8 @@ def create_argparser():
         '--disable_cubic_notation_title',
         action='store_true',
         default=None,
-        help='Force-disable N^3 notation in the subplot title for cubic volumes',
+        help=
+        'Force-disable N^3 notation in the subplot title for cubic volumes',
     )
     plot_parser.add_argument(
         '--enable_cubic_notation_title',
@@ -192,11 +211,11 @@ def create_argparser():
         '-l',
         '--label_text',
         type=str,
-        help=(
-            'Custom label for the plot. You can use placeholders: %%decomposition%% '
-            '(or %%p%%), %%precision%% (or %%pr%%), %%plot_name%% (or %%pn%%), '
-            '%%backend%% (or %%b%%), %%node%% (or %%n%%), %%methodname%% (or %%m%%)'
-        ),
+        help=
+        ('Custom label for the plot. You can use placeholders: %%decomposition%% '
+         '(or %%p%%), %%precision%% (or %%pr%%), %%plot_name%% (or %%pn%%), '
+         '%%backend%% (or %%b%%), %%node%% (or %%n%%), %%methodname%% (or %%m%%)'
+         ),
         default='%m%-%f%-%pn%-%pr%-%b%-%p%-%n%',
     )
 
@@ -220,27 +239,25 @@ def create_argparser():
     # if command was plot, then check if pdim_strategy is valid
     if args.command == 'plot':
         if 'plot_all' in args.pdim_strategy and len(args.pdim_strategy) > 1:
-            print(
-                """
+            print("""
                 Warning: 'plot_all' strategy is combined with other strategies.
                 Using 'plot_all' only.
-                """
-            )
+                """)
             args.pdim_strategy = ['plot_all']
 
-        if 'plot_fastest' in args.pdim_strategy and len(args.pdim_strategy) > 1:
-            print(
-                """
+        if 'plot_fastest' in args.pdim_strategy and len(
+                args.pdim_strategy) > 1:
+            print("""
                 Warning: 'plot_fastest' strategy is combined with other strategies.
                 Using 'plot_fastest' only.
-                """
-            )
+                """)
             args.pdim_strategy = ['plot_fastest']
         if args.plot_times is not None:
             args.plot_columns = args.plot_times
         elif args.plot_memory is not None:
             args.plot_columns = args.plot_memory
         else:
-            raise ValueError('Either plot_times or plot_memory should be provided')
+            raise ValueError(
+                'Either plot_times or plot_memory should be provided')
 
     return args

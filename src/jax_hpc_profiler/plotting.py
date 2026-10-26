@@ -120,7 +120,7 @@ def configure_axes(
     ylabel = f'Time ({time_label})' if not plotting_memory else f'Memory ({memory_units})'
 
     ax.set_xlim([min(x_values), max(x_values)])
-    y_min, y_max = min(y_values) * 0.6, max(y_values) * 1.1
+    y_min, y_max = min(y_values) * 0.9, max(y_values) * 1.1
     ax.set_title(title)
     ax.set_ylim([y_min, y_max])
     if not plotting_memory:
